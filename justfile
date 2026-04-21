@@ -1,6 +1,10 @@
 nix_shell := if env('IN_NIX_SHELL', '') != '' { '' } else { 'nix develop -c' }
 name := "devbox"
-cpus := "6"
+
+# CPUs = host logical cores − 2 (leave a couple for the host). CPU
+# over-subscription is cheap — the host scheduler time-slices — so we
+# can be generous. Override: `just --set cpus 4 start`.
+cpus := `echo $(( $(sysctl -n hw.ncpu) - 2 ))`
 
 # Memory ceiling in GiB = host RAM − 4 GiB. With the vz driver the host
 # demand-pages guest memory, so this is a cap, not an up-front allocation.
