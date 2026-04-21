@@ -1,5 +1,5 @@
 {
-  description = "lima-nixos-demo: custom NixOS + home-manager config for a Lima devbox on macOS";
+  description = "devbox: NixOS based devbox on macOS (custom NixOS + home-manager on Lima)";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";

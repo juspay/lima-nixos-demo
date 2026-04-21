@@ -1,6 +1,6 @@
-# lima-nixos-demo
+# devbox
 
-A [`justfile`](justfile) + flake for running a customized NixOS devbox VM via [Lima](https://lima-vm.io/) on macOS.
+NixOS based devbox on macOS — a [`justfile`](justfile) + flake that boots and provisions a customized NixOS VM via [Lima](https://lima-vm.io/).
 
 ## Requirements
 
