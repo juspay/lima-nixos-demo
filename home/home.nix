@@ -2,7 +2,7 @@
 
 {
   home.username = username;
-  home.homeDirectory = "/home/${username}.linux";
+  home.homeDirectory = "/home/${username}.guest";
   home.stateVersion = "25.11";
 
   programs.home-manager.enable = true;
