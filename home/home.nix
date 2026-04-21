@@ -9,6 +9,11 @@
 
   programs.home-manager.enable = true;
 
+  # Required for HM to inject shell integration (starship init, direnv hook,
+  # etc.) into the user's bash init files. Without this, `programs.*.enable`
+  # modules that rely on shell hooks are silently no-ops.
+  programs.bash.enable = true;
+
   programs.starship.enable = true;
 
   programs.direnv = {
