@@ -48,3 +48,5 @@ just ssh
 mkdir -p ~/code && cd ~/code
 git clone …
 ```
+
+The mount's read-only state is the Lima default; we keep it. If you want to override it (or anything else in the template), [`flake.nix`](flake.nix) has a `yq`-based pattern commented next to the `lima-template` derivation.

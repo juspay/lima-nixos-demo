@@ -7,14 +7,14 @@ default:
 
 # --- Lifecycle ---
 
-# `github:nixos-lima` below is a Lima TEMPLATE reference (the stock qcow2
-# release), not a Nix flake input. Our locked nixos-lima in flake.lock
-# takes over only after `provision` runs nixos-rebuild with our own config.
+# We build the Lima template from our locked `nixos-lima` flake input
+# via `.#lima-template`, so `limactl start` sees exactly the pinned
+# version (qcow2 digest included) instead of refetching master.
 
 # Create and start the NixOS VM, then apply our custom config
 [group('lifecycle')]
 start vm=name:
-    {{nix_shell}} limactl start --name={{vm}} --cpus=6 --memory=12 --disk=100 --yes github:nixos-lima
+    {{nix_shell}} limactl start --name={{vm}} --cpus=6 --memory=12 --disk=100 --yes $(nix build --no-link --print-out-paths .#lima-template)
     just provision {{vm}}
 
 # `--workdir /tmp` keeps CWD off Lima's Users-<user> 9p mount so that
