@@ -1,0 +1,62 @@
+name: Release Images
+
+on:
+  pull_request:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing GitHub release tag to upload image assets to
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-upload:
+    name: Build ${{ matrix.guest-arch }} image
+    runs-on: x86_64-linux
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - guest-system: x86_64-linux
+            guest-arch: x86_64
+            config: devbox-x86_64
+          - guest-system: aarch64-linux
+            guest-arch: aarch64
+            config: devbox-aarch64
+    env:
+      RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag || github.sha }}
+      IMAGE_ATTR: .#nixosConfigurations.${{ matrix.config }}.config.system.build.images.qemu-efi
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Build image
+        run: |
+          set -euo pipefail
+          nix build "$IMAGE_ATTR" --out-link "result-${{ matrix.guest-arch }}"
+
+      - name: Compress image
+        run: |
+          set -euo pipefail
+          image_file="$(nix eval --raw "$IMAGE_ATTR.passthru.filePath")"
+          src="result-${{ matrix.guest-arch }}/$image_file"
+          dst="devbox-${RELEASE_TAG}-${{ matrix.guest-arch }}.qcow2"
+          nix shell --inputs-from . nixpkgs#qemu --command qemu-img convert -O qcow2 -c "$src" "$dst"
+          sha512sum "$dst" > "$dst.sha512"
+
+      - name: Upload image to release
+        if: github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          nix shell --inputs-from . nixpkgs#gh --command gh release view "$RELEASE_TAG"
+          nix shell --inputs-from . nixpkgs#gh --command gh release upload "$RELEASE_TAG" \
+            "devbox-${RELEASE_TAG}-${{ matrix.guest-arch }}.qcow2" \
+            "devbox-${RELEASE_TAG}-${{ matrix.guest-arch }}.qcow2.sha512" \
+            --clobber

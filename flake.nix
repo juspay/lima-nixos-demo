@@ -17,8 +17,9 @@
     let
       darwinSystems = [ "aarch64-darwin" "x86_64-darwin" ];
       forEach = nixpkgs.lib.genAttrs;
+      base = import ./default.nix inputs;
     in
-    (import ./default.nix inputs) // {
+    base // {
       devShells = forEach darwinSystems (system: {
         default = import ./shell.nix { pkgs = nixpkgs.legacyPackages.${system}; };
       });
