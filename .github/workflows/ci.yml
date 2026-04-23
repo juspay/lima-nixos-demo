@@ -8,15 +8,11 @@ on:
 jobs:
   check:
     runs-on: x86_64-linux
-    env:
-      NIX_CONFIG: |
-        experimental-features = nix-command flakes
-        accept-flake-config = true
     steps:
       - uses: actions/checkout@v5
 
       - name: nix flake check
         run: nix flake check --show-trace
 
-      - name: eval NixOS system
-        run: nix eval --raw .#nixosConfigurations.devbox.config.system.build.toplevel.drvPath
+      - name: build NixOS system
+        run: nix build --print-out-paths .#nixosConfigurations.devbox.config.system.build.toplevel
