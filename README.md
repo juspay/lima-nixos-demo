@@ -32,7 +32,7 @@ Via [`nixos/devbox.nix`](nixos/devbox.nix): `nix-ld`, flakes, [`nixos-vscode-ser
 
 ## Release images
 
-The flake can build baked Lima-compatible qcow2 images from `nixosConfigurations.devbox-aarch64.config.system.build.images.qemu-efi` and `nixosConfigurations.devbox-x86_64.config.system.build.images.qemu-efi`. Publishing a GitHub release triggers the release-image workflow, which uses `devShells.x86_64-linux.ci` to upload `devbox-<tag>-aarch64.qcow2`, `devbox-<tag>-x86_64.qcow2`, and matching SHA-512 files to that release. The release-image module gives Nixpkgs' disk-image builder VM 4 GiB of memory so aarch64 image generation has enough room to copy the closure.
+The flake can build baked Lima-compatible qcow2 images from `nixosConfigurations.devbox-aarch64.config.system.build.images.qemu-efi` and `nixosConfigurations.devbox-x86_64.config.system.build.images.qemu-efi`. Publishing a GitHub release triggers the release-image workflow, which uses `devShells.x86_64-linux.ci` to upload `devbox-<tag>-aarch64.qcow2`, `devbox-<tag>-x86_64.qcow2`, and matching SHA-512 files to that release. The release-image module gives Nixpkgs' disk-image builder VM 8 GiB of memory so aarch64 image generation has enough room to copy the closure.
 
 These assets are groundwork for launching directly from a devbox image. For now, `just start` still boots the stock `nixos-lima` image and runs `nixos-rebuild switch`.
 

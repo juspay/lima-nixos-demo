@@ -15,7 +15,7 @@
         inherit lib config pkgs;
         inherit (config.virtualisation) diskSize;
         inherit (cfg) baseName format;
-        memSize = 4096;
+        memSize = 8192;
         partitionTableType = if cfg.efiSupport then "efi" else "legacy";
       });
     }
