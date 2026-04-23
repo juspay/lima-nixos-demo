@@ -15,6 +15,7 @@ jobs:
       NIXPKGS_ALLOW_INSECURE: "1"
       DEVBOX_ARTIFACTS_DIR: /tmp/devbox-artifacts-${{ github.run_id }}
       DEVBOX_EXCHANGE_DIR: /tmp/devbox-exchange-${{ github.run_id }}
+      DEVBOX_KEEP_FAILED_VM: "1"
       DEVBOX_VM: devbox-ci-x86
       QEMU_SYSTEM_X86_64: qemu-system-x86_64 -accel tcg
     steps:

@@ -55,6 +55,10 @@ build-image vm=name:
     mkdir -p "$artifacts_dir"
     limactl delete --force "{{vm}}-builder" >/dev/null 2>&1 || true
     cleanup() {
+      status="$?"
+      if [ "$status" -ne 0 ] && [ "${DEVBOX_KEEP_FAILED_VM:-}" = "1" ]; then
+        exit "$status"
+      fi
       limactl stop "{{vm}}-builder" >/dev/null 2>&1 || true
       limactl delete --force "{{vm}}-builder" >/dev/null 2>&1 || true
     }
