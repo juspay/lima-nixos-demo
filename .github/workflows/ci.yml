@@ -40,14 +40,18 @@ jobs:
           EOF
           chmod +x "$RUNNER_TEMP/bin/limactl"
           echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+          qemu_pkg="$(nix build --no-link --print-out-paths nixpkgs#qemu)"
+          mkdir -p "$RUNNER_TEMP/share"
+          ln -sfn "$qemu_pkg/share/qemu" "$RUNNER_TEMP/share/qemu"
           cat > "$RUNNER_TEMP/bin/qemu-system-x86_64-tcg" <<'EOF'
           #!/usr/bin/env bash
           args=()
           for arg in "$@"; do
             args+=("${arg//q35,accel=kvm/q35,accel=tcg}")
           done
-          exec nix shell --impure nixpkgs#qemu -c qemu-system-x86_64 "${args[@]}"
+          exec __QEMU_BIN__ "${args[@]}"
           EOF
+          sed -i "s|__QEMU_BIN__|$qemu_pkg/bin/qemu-system-x86_64|" "$RUNNER_TEMP/bin/qemu-system-x86_64-tcg"
           chmod +x "$RUNNER_TEMP/bin/qemu-system-x86_64-tcg"
           echo "QEMU_SYSTEM_X86_64=$RUNNER_TEMP/bin/qemu-system-x86_64-tcg" >> "$GITHUB_ENV"
 
