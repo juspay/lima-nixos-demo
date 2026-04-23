@@ -30,6 +30,12 @@ The VM user and hostname default to your macOS `$USER` / `devbox`. CPU / memory 
 
 Via [`nixos/devbox.nix`](nixos/devbox.nix): `nix-ld`, flakes, passwordless `wheel` sudo, [`nixos-vscode-server`](https://github.com/nix-community/nixos-vscode-server), `starship`, `direnv` + `nix-direnv`, `btop`, `just`, `gh`.
 
+## Installing more tools
+
+For ad hoc user-level tools inside the VM, use `nix profile install`, e.g. `nix profile install nixpkgs#ripgrep`.
+
+For declarative user packages, dotfile management, and systemd user services, use Home Manager from the [`juspay/nixos-unified-template`](https://github.com/juspay/nixos-unified-template).
+
 ## SSH access
 
 ```sh
