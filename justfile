@@ -50,14 +50,7 @@ build-image vm=name:
     template_path="$artifacts_dir/{{vm}}.yaml"
     builder_template="${DEVBOX_BUILDER_TEMPLATE:-}"
     if [ -z "$builder_template" ]; then
-      nixos_lima_rev="$(
-        awk '
-          /"nixos-lima":/ { inNode = 1 }
-          inNode && /"locked":/ { inLocked = 1 }
-          inLocked && /"rev":/ { gsub(/[",]/, "", $2); print $2; exit }
-        ' "$repo/flake.lock"
-      )"
-      builder_template="https://raw.githubusercontent.com/nixos-lima/nixos-lima/$nixos_lima_rev/nixos.yaml"
+      builder_template="$repo/lima/builder.yaml.in"
     fi
     mkdir -p "$artifacts_dir"
     limactl delete --force "{{vm}}-builder" >/dev/null 2>&1 || true
@@ -67,12 +60,14 @@ build-image vm=name:
     }
     trap cleanup EXIT
     mount_args=()
-    if limactl start --help | grep -q -- '--mount-only'; then
+    if [[ "$builder_template" != http* ]] && grep -q '__REPO_LOCATION__' "$builder_template"; then
+      mounted_builder_template="$artifacts_dir/{{vm}}-builder.yaml"
+      sed "s|__REPO_LOCATION__|$repo|g" "$builder_template" > "$mounted_builder_template"
+      builder_template="$mounted_builder_template"
+    elif limactl start --help | grep -q -- '--mount-only'; then
       mount_args=(--mount-only "$repo")
     else
-      mounted_builder_template="$artifacts_dir/{{vm}}-builder.yaml"
-      sed "s|__REPO_LOCATION__|$repo|g" "$repo/lima/builder.yaml.in" > "$mounted_builder_template"
-      builder_template="$mounted_builder_template"
+      mount_args=(--mount "$repo")
     fi
     limactl start --arch="$lima_arch" --name="{{vm}}-builder" --cpus={{cpus}} --memory={{memory}} --disk={{disk}} "${mount_args[@]}" --yes "$builder_template"
     just provision-system "$linux_system" "{{vm}}-builder"
