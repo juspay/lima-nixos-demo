@@ -27,6 +27,7 @@ jobs:
           command -v just >/dev/null || missing_tools+=(nixpkgs#just)
           command -v awk >/dev/null || missing_tools+=(nixpkgs#gawk)
           command -v sed >/dev/null || missing_tools+=(nixpkgs#gnused)
+          command -v ssh-keygen >/dev/null || missing_tools+=(nixpkgs#openssh)
           if [ "${#missing_tools[@]}" -gt 0 ]; then
             nix profile install "${missing_tools[@]}"
           fi
