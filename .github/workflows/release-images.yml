@@ -20,6 +20,7 @@ jobs:
     runs-on: x86_64-linux
     strategy:
       fail-fast: false
+      max-parallel: 1
       matrix:
         include:
           - guest-system: x86_64-linux
