@@ -70,7 +70,20 @@ build-image vm=name:
     if limactl start --help | grep -q -- '--mount-only'; then
       mount_args=(--mount-only "$repo")
     else
-      mount_args=(--mount-none --mount "$repo")
+      mounted_builder_template="$artifacts_dir/{{vm}}-builder.yaml"
+      if [[ "$builder_template" =~ ^https?:// ]]; then
+        curl -fsSL "$builder_template" > "$mounted_builder_template"
+      else
+        cp "$builder_template" "$mounted_builder_template"
+      fi
+      awk '
+        /^[^[:space:]-][^:]*:/ { skip = 0 }
+        /^mounts:/ { skip = 1; next }
+        !skip { print }
+      ' "$mounted_builder_template" > "$mounted_builder_template.tmp"
+      printf 'mounts:\n- location: "%s"\n  writable: false\n' "$repo" >> "$mounted_builder_template.tmp"
+      mv "$mounted_builder_template.tmp" "$mounted_builder_template"
+      builder_template="$mounted_builder_template"
     fi
     limactl start --arch="$lima_arch" --name="{{vm}}-builder" --cpus={{cpus}} --memory={{memory}} --disk={{disk}} "${mount_args[@]}" --yes "$builder_template"
     just provision-system "$linux_system" "{{vm}}-builder"
@@ -117,7 +130,7 @@ start vm=name:
           mount_args+=(--mount-only "$mount_spec")
         done
       else
-        mount_args=(--mount-none --mount "$repo" --mount "{{exchange_dir}}:w")
+        mount_args=(--mount "$repo" --mount "{{exchange_dir}}:w")
         for mount_spec in ${DEVBOX_EXTRA_MOUNTS:-}; do
           mount_args+=(--mount "$mount_spec")
         done
