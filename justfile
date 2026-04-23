@@ -77,3 +77,15 @@ ssh-config vm=name:
 [group('access')]
 ssh *args='':
     ssh -F ~/.lima/{{name}}/ssh.config lima-{{name}} {{args}}
+
+# --- Release ---
+
+# Create a GitHub release. The Release Images workflow uploads qcow2 assets.
+[group('release')]
+release version:
+    {{nix_shell}} gh release create "{{version}}" --repo juspay/devbox --target main --title "Release {{version}}" --notes "Devbox image release {{version}}"
+
+# Re-run image upload workflow for an existing release
+[group('release')]
+release-images version:
+    {{nix_shell}} gh workflow run release-images.yml --repo juspay/devbox --ref main -f tag="{{version}}"

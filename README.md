@@ -7,7 +7,7 @@ NixOS based devbox on macOS — a [`justfile`](justfile) + flake that boots and 
 - [Nix](https://nixos.asia/en/install) (everything else comes from the devShell)
 - [`just`](https://github.com/casey/just)
 
-Run `nix develop` once to enter a shell with `lima` + `just` pinned, or let each recipe invoke `nix develop -c` automatically.
+Run `nix develop` once to enter a shell with `lima`, `just`, and `gh` pinned, or let each recipe invoke `nix develop -c` automatically.
 
 ## Usage
 
@@ -32,9 +32,25 @@ Via [`nixos/devbox.nix`](nixos/devbox.nix): `nix-ld`, flakes, [`nixos-vscode-ser
 
 ## Release images
 
-The flake can build baked Lima-compatible qcow2 images from `nixosConfigurations.devbox-aarch64.config.system.build.images.qemu-efi` and `nixosConfigurations.devbox-x86_64.config.system.build.images.qemu-efi`. Publishing a GitHub release triggers the release-image workflow, which uploads `devbox-<tag>-aarch64.qcow2`, `devbox-<tag>-x86_64.qcow2`, and matching SHA-512 files to that release.
+The flake can build baked Lima-compatible qcow2 images from `nixosConfigurations.devbox-aarch64.config.system.build.images.qemu-efi` and `nixosConfigurations.devbox-x86_64.config.system.build.images.qemu-efi`. Publishing a GitHub release triggers the release-image workflow, which uses `devShells.x86_64-linux.ci` to upload `devbox-<tag>-aarch64.qcow2`, `devbox-<tag>-x86_64.qcow2`, and matching SHA-512 files to that release.
 
 These assets are groundwork for launching directly from a devbox image. For now, `just start` still boots the stock `nixos-lima` image and runs `nixos-rebuild switch`.
+
+## Cutting a release
+
+After merging release-image changes, create a GitHub release:
+
+```sh
+just release v0.1.0
+```
+
+Publishing the release starts the `Release Images` workflow. The workflow builds and compresses both images on the `x86_64-linux` runner, then uploads the qcow2 and SHA-512 assets to the release.
+
+To rerun uploads for an existing release after this workflow is on `main`:
+
+```sh
+just release-images v0.1.0
+```
 
 ## Security model
 

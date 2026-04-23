@@ -46,8 +46,8 @@ jobs:
           image_file="$(nix eval --raw "$IMAGE_ATTR.passthru.filePath")"
           src="result-${{ matrix.guest-arch }}/$image_file"
           dst="devbox-${RELEASE_TAG}-${{ matrix.guest-arch }}.qcow2"
-          nix shell --inputs-from . nixpkgs#qemu --command qemu-img convert -O qcow2 -c "$src" "$dst"
-          sha512sum "$dst" > "$dst.sha512"
+          nix develop .#ci -c qemu-img convert -O qcow2 -c "$src" "$dst"
+          nix develop .#ci -c sha512sum "$dst" > "$dst.sha512"
 
       - name: Upload image to release
         if: github.event_name != 'pull_request'
@@ -55,8 +55,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          nix shell --inputs-from . nixpkgs#gh --command gh release view "$RELEASE_TAG"
-          nix shell --inputs-from . nixpkgs#gh --command gh release upload "$RELEASE_TAG" \
+          nix develop .#ci -c gh release view "$RELEASE_TAG"
+          nix develop .#ci -c gh release upload "$RELEASE_TAG" \
             "devbox-${RELEASE_TAG}-${{ matrix.guest-arch }}.qcow2" \
             "devbox-${RELEASE_TAG}-${{ matrix.guest-arch }}.qcow2.sha512" \
             --clobber
