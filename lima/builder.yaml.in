@@ -13,10 +13,8 @@ mounts:
 
 memory: 8GiB
 
-vmOpts:
-  qemu:
-    cpuType:
-      x86_64: "qemu64"
+cpuType:
+  x86_64: "qemu64"
 
 portForwards:
   - proto: udp
