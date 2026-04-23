@@ -30,6 +30,12 @@ The VM user and hostname default to your macOS `$USER` / `devbox`. CPU / memory 
 
 Via [`nixos/devbox.nix`](nixos/devbox.nix): `nix-ld`, flakes, passwordless `wheel` sudo, [`nixos-vscode-server`](https://github.com/nix-community/nixos-vscode-server), `starship`, `direnv` + `nix-direnv`, `btop`, `just`, `gh`.
 
+## Security model
+
+This is a local, single-user devbox VM, not a hardened multi-user host. Lima creates a guest user matching your macOS `$USER`; today that user has passwordless `sudo` so `just provision` can run `nixos-rebuild switch`.
+
+SSH access uses Lima's generated config under `~/.lima/devbox/ssh.config`, so this repo does not mutate your global `~/.ssh/config`. Your macOS home is mounted into the guest at `/Users/<you>` read-only; keep day-to-day development work in the guest's own writable filesystem, such as `~/code`.
+
 ## Installing more tools
 
 For ad hoc user-level tools inside the VM, use `nix profile install`, e.g. `nix profile install nixpkgs#ripgrep`.
