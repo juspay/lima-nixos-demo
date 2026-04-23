@@ -69,7 +69,8 @@ build-image vm=name:
     else
       mount_args=(--mount "$repo")
     fi
-    limactl start --arch="$lima_arch" --name="{{vm}}-builder" --cpus={{cpus}} --memory={{memory}} --disk={{disk}} "${mount_args[@]}" --yes "$builder_template"
+    limactl create --arch="$lima_arch" --name="{{vm}}-builder" --cpus={{cpus}} --memory={{memory}} --disk={{disk}} "${mount_args[@]}" --yes "$builder_template"
+    limactl start "{{vm}}-builder"
     just provision-system "$linux_system" "{{vm}}-builder"
     image_store_path="$(
       limactl shell --workdir "$repo" "{{vm}}-builder" -- \
