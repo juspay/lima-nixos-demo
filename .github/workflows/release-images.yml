@@ -17,24 +17,33 @@ permissions:
 jobs:
   build-and-upload:
     name: Build ${{ matrix.guest-arch }} image
-    runs-on: x86_64-linux
+    runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
-      max-parallel: 1
       matrix:
         include:
           - guest-system: x86_64-linux
             guest-arch: x86_64
             config: devbox-x86_64
+            runner: x86_64-linux
+            install-nix: false
           - guest-system: aarch64-linux
             guest-arch: aarch64
             config: devbox-aarch64
+            runner: ubuntu-24.04-arm
+            install-nix: true
     env:
       RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag || github.sha }}
       IMAGE_ATTR: .#nixosConfigurations.${{ matrix.config }}.config.system.build.images.qemu-efi
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+
+      - name: Install Nix
+        if: matrix.install-nix
+        uses: cachix/install-nix-action@v31
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build image
         run: |
