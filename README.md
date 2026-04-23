@@ -22,15 +22,25 @@ just recreate     # wipe and start fresh
 just list         # list all Lima VMs
 ```
 
-First `just start` takes a few minutes: it boots the stock `github:nixos-lima` image, then `nixos-rebuild switch` applies our [`flake.nix`](flake.nix) on top (system + home-manager in one shot).
+First `just start` takes a few minutes: it boots the stock `github:nixos-lima` image, then `nixos-rebuild switch` applies our [`flake.nix`](flake.nix) on top.
 
 The VM user and hostname default to your macOS `$USER` / `devbox`. CPU / memory / disk default to `host cores − 2`, `host RAM − 4 GiB`, and `half of host free disk`. Memory is a ceiling (the vz driver demand-pages from the host); disk is a ceiling (Lima's qcow2 is sparse and grows lazily); CPU over-subscription is cheap. Override any default with `just --set`, e.g. `just --set cpus 4 --set memory 16 --set disk 200 start`.
 
 ## What's in the VM
 
-System (via [`nixos/configuration.nix`](nixos/configuration.nix)): `nix-ld`, flakes, passwordless `wheel` sudo, `systemd-logind` lingering for the user, [`nixos-vscode-server`](https://github.com/nix-community/nixos-vscode-server).
+Via [`nixos/devbox.nix`](nixos/devbox.nix): `nix-ld`, flakes, [`nixos-vscode-server`](https://github.com/nix-community/nixos-vscode-server), `starship`, `direnv` + `nix-direnv`, `btop`, `just`, `gh`.
 
-User (via [`home/home.nix`](home/home.nix)): `starship`, `direnv` + `nix-direnv`, `btop`, `just`, `gh`.
+## Security model
+
+This is a local, single-user devbox VM, not a hardened multi-user host. The passwordless sudo behavior comes from `nixos-lima`: `lima-init` creates a guest user matching your macOS `$USER` and adds it to `wheel`, while the `nixos-lima` module sets `security.sudo.wheelNeedsPassword = false`. This repo currently keeps that behavior so `just provision` can run `nixos-rebuild switch`.
+
+SSH access uses Lima's generated config under `~/.lima/devbox/ssh.config`, so this repo does not mutate your global `~/.ssh/config`. Your macOS home is mounted into the guest at `/Users/<you>` read-only; keep day-to-day development work in the guest's own writable filesystem, such as `~/code`.
+
+## Installing more tools
+
+For ad hoc user-level tools inside the VM, use `nix profile install`, e.g. `nix profile install nixpkgs#ripgrep`.
+
+For declarative user packages, dotfile management, and systemd user services, use Home Manager from the [`juspay/nixos-unified-template`](https://github.com/juspay/nixos-unified-template).
 
 ## SSH access
 

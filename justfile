@@ -34,13 +34,11 @@ start vm=name:
 
 # `--workdir /tmp` keeps CWD off Lima's Users-<user> 9p mount so that
 # switch-to-configuration can restart that mount unit cleanly.
-# `--impure` + `env USER=...` lets default.nix read $USER across the sudo
-# boundary, so the flake provisions for the invoking user.
 
-# Apply our NixOS + home-manager config inside the VM (idempotent)
+# Apply our NixOS config inside the VM (idempotent)
 [group('lifecycle')]
 provision vm=name:
-    {{nix_shell}} limactl shell --workdir /tmp {{vm}} -- sudo env USER=$USER nixos-rebuild switch --impure --flake $(pwd)#devbox
+    {{nix_shell}} limactl shell --workdir /tmp {{vm}} -- sudo nixos-rebuild switch --flake $(pwd)#devbox
 
 # Stop the VM
 [group('lifecycle')]
