@@ -6,48 +6,40 @@ on:
   pull_request:
 
 jobs:
-  arm-macbook-workflow:
+  x86-lima-workflow:
     runs-on: x86_64-linux
     env:
       NIX_CONFIG: |
         experimental-features = nix-command flakes
         accept-flake-config = true
-      DEVBOX_ARTIFACTS_DIR: ${{ runner.temp }}/devbox-artifacts
-      DEVBOX_EXCHANGE_DIR: ${{ runner.temp }}/devbox-exchange
-      DEVBOX_TARGET_SYSTEM: aarch64-linux
-      DEVBOX_LIMA_ARCH: aarch64
-      DEVBOX_VM: devbox-ci-aarch64
+      DEVBOX_ARTIFACTS_DIR: /tmp/devbox-artifacts-${{ github.run_id }}
+      DEVBOX_EXCHANGE_DIR: /tmp/devbox-exchange-${{ github.run_id }}
+      DEVBOX_VM: devbox-ci-x86
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
 
-      - name: Build image through Lima workflow
-        run: |
-          nix shell nixpkgs#lima nixpkgs#just -c just \
-            --set cpus 4 \
-            --set memory 8 \
-            --set disk 40 \
-            build-image "$DEVBOX_VM"
+      - name: Install CI tools
+        run: nix profile install nixpkgs#just nixpkgs#lima
 
-      - name: Boot image through Lima workflow
-        run: |
-          nix shell nixpkgs#lima nixpkgs#just -c just \
-            --set cpus 4 \
-            --set memory 8 \
-            --set disk 40 \
-            start "$DEVBOX_VM"
+      - name: Build image through justfile workflow
+        run: just --set cpus 4 --set memory 8 --set disk 40 build-image "$DEVBOX_VM"
+
+      - name: Boot image through justfile workflow
+        run: just --set cpus 4 --set memory 8 --set disk 40 start "$DEVBOX_VM"
 
       - name: Smoke test VM
         run: |
-          nix shell nixpkgs#lima -c limactl shell "$DEVBOX_VM" -- sh -lc '
+          limactl shell "$DEVBOX_VM" -- sh -lc "
             set -eu
-            test "$(uname -m)" = aarch64
+            test \"\$(uname -m)\" = x86_64
             command -v direnv
             command -v gh
             command -v btop
-          '
+          "
 
       - name: Cleanup Lima VMs
         if: always()
         run: |
-          nix shell nixpkgs#lima -c limactl delete --force "$DEVBOX_VM" || true
-          nix shell nixpkgs#lima -c limactl delete --force "$DEVBOX_VM-builder" || true
+          limactl delete --force "$DEVBOX_VM" || true
+          limactl delete --force "$DEVBOX_VM-builder" || true
+          rm -rf "$DEVBOX_ARTIFACTS_DIR" "$DEVBOX_EXCHANGE_DIR"
