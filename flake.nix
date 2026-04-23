@@ -1,5 +1,5 @@
 {
-  description = "devbox: NixOS based devbox on macOS (custom NixOS + home-manager on Lima)";
+  description = "devbox: NixOS based devbox on macOS (custom NixOS image + guest Home Manager on Lima)";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -17,7 +17,7 @@
     };
   };
 
-  outputs = inputs@{ nixpkgs, nixos-lima, ... }:
+  outputs = inputs@{ nixpkgs, ... }:
     let
       darwinSystems = [ "aarch64-darwin" "x86_64-darwin" ];
       forEach = nixpkgs.lib.genAttrs;
@@ -26,17 +26,5 @@
       devShells = forEach darwinSystems (system: {
         default = import ./shell.nix { pkgs = nixpkgs.legacyPackages.${system}; };
       });
-
-      # Lima template YAML, pinned to our locked nixos-lima input. Passes
-      # through unmodified today; to apply local overrides (e.g. writable
-      # mounts), swap the `cp` for a `yq` transform, for example:
-      #   nativeBuildInputs = [ pkgs.yq-go ];
-      #   yq '.mounts |= map(.writable = true)' ${nixos-lima}/.lima.yaml > $out
-      packages = forEach darwinSystems (system:
-        let pkgs = nixpkgs.legacyPackages.${system}; in {
-          lima-template = pkgs.runCommand "nixos-lima-template" { } ''
-            cp ${nixos-lima}/.lima.yaml $out
-          '';
-        });
     };
 }

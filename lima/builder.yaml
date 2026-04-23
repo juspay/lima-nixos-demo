@@ -1,0 +1,30 @@
+# Template using the latest released nixos-lima images.
+images:
+  - location: "https://github.com/nixos-lima/nixos-lima/releases/download/v0.0.5/nixos-lima-v0.0.5-aarch64.qcow2"
+    arch: "aarch64"
+    digest: "sha512:e1daeb0dcec65c624253603ab5ec06f0831b0940cd95a88903f9bfd0ee4009b2c45806b868674c7e8cb12941e50799e85d710fc0e9ad659059108cebbc4d19c1"
+  - location: "https://github.com/nixos-lima/nixos-lima/releases/download/v0.0.5/nixos-lima-v0.0.5-x86_64.qcow2"
+    arch: "x86_64"
+    digest: "sha512:51fbe74c569736f1141f1c6efeaa21a0901dff0bec5bc1e863c04c7765e150c3bebd82b7f50905fb7a0a9a9b050852c250ffbdcacd17b0dc15aeb86d47587436"
+
+mounts:
+  - location: "~"
+    writable: false
+    9p:
+      cache: "mmap"
+  - location: "/tmp/lima"
+    writable: true
+    9p:
+      cache: "mmap"
+
+memory: 8GiB
+
+portForwards:
+  - proto: udp
+    guestPort: 68
+    guestIP: 0.0.0.0
+    ignore: true
+
+containerd:
+  system: false
+  user: false

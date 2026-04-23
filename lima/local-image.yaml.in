@@ -1,0 +1,24 @@
+images:
+  - location: "__IMAGE_LOCATION__"
+
+mounts:
+  - location: "~"
+    writable: false
+    9p:
+      cache: "mmap"
+  - location: "/tmp/lima"
+    writable: true
+    9p:
+      cache: "mmap"
+
+memory: 8GiB
+
+portForwards:
+  - proto: udp
+    guestPort: 68
+    guestIP: 0.0.0.0
+    ignore: true
+
+containerd:
+  system: false
+  user: false

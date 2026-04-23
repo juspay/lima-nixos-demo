@@ -1,5 +1,6 @@
-nix_shell := if env('IN_NIX_SHELL', '') != '' { '' } else { 'nix develop -c' }
 name := "devbox"
+exchange_dir := env('DEVBOX_EXCHANGE_DIR', env('HOME') + "/Shared/devbox-exchange")
+artifacts_dir := env('DEVBOX_ARTIFACTS_DIR', env('HOME') + "/Library/Caches/" + name)
 
 # CPUs = host logical cores − 2 (leave a couple for the host). CPU
 # over-subscription is cheap — the host scheduler time-slices — so we
@@ -22,60 +23,112 @@ default:
 
 # --- Lifecycle ---
 
-# We build the Lima template from our locked `nixos-lima` flake input
-# via `.#lima-template`, so `limactl start` sees exactly the pinned
-# version (qcow2 digest included) instead of refetching master.
+# Build a local qcow2 image inside a temporary NixOS builder VM. This keeps
+# Nix off the host while still producing a pinned image from our flake.
+[group('lifecycle')]
+build-image vm=name:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    repo="$(pwd)"
+    case "$(uname -m)" in
+      arm64) linux_system="aarch64-linux" ;;
+      x86_64) linux_system="x86_64-linux" ;;
+      *) echo "Unsupported host architecture: $(uname -m)" >&2; exit 1 ;;
+    esac
+    artifacts_dir="{{artifacts_dir}}"
+    image_path="$artifacts_dir/{{vm}}.qcow2"
+    template_path="$artifacts_dir/{{vm}}.yaml"
+    mkdir -p "$artifacts_dir"
+    limactl delete --force "{{vm}}-builder" >/dev/null 2>&1 || true
+    cleanup() {
+      limactl stop "{{vm}}-builder" >/dev/null 2>&1 || true
+      limactl delete --force "{{vm}}-builder" >/dev/null 2>&1 || true
+    }
+    trap cleanup EXIT
+    limactl start --name="{{vm}}-builder" --cpus={{cpus}} --memory={{memory}} --disk={{disk}} --mount-only "$repo" --yes "$repo/lima/builder.yaml"
+    just provision-system "$linux_system" "{{vm}}-builder"
+    image_store_path="$(
+      limactl shell --workdir "$repo" "{{vm}}-builder" -- \
+        bash -lc "nix build --no-link --print-out-paths '$repo'#packages.$linux_system.devbox-image"
+    )"
+    rm -f "$image_path"
+    limactl copy --backend=scp "{{vm}}-builder:${image_store_path}" "$image_path"
+    sed "s|__IMAGE_LOCATION__|file://$image_path|g" "$repo/lima/local-image.yaml.in" > "$template_path"
 
-# Create and start the NixOS VM, then apply our custom config
+# Apply the NixOS system config inside a running builder VM.
+[group('lifecycle')]
+provision-system linux_system vm=name:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    repo="$(pwd)"
+    limactl shell --workdir /tmp "{{vm}}" -- sudo nixos-rebuild switch --flake "$repo#devbox-{{linux_system}}"
+
+# Create and start the working VM from the locally built qcow2. The VM sees
+# this repo read-only plus a single writable exchange directory by default.
 [group('lifecycle')]
 start vm=name:
-    {{nix_shell}} limactl start --name={{vm}} --cpus={{cpus}} --memory={{memory}} --disk={{disk}} --yes $(nix build --no-link --print-out-paths .#lima-template)
-    just provision {{vm}}
-
-# `--workdir /tmp` keeps CWD off Lima's Users-<user> 9p mount so that
-# switch-to-configuration can restart that mount unit cleanly.
-# `--impure` + `env USER=...` lets default.nix read $USER across the sudo
-# boundary, so the flake provisions for the invoking user.
-
-# Apply our NixOS + home-manager config inside the VM (idempotent)
-[group('lifecycle')]
-provision vm=name:
-    {{nix_shell}} limactl shell --workdir /tmp {{vm}} -- sudo env USER=$USER nixos-rebuild switch --impure --flake $(pwd)#devbox
+    #!/usr/bin/env bash
+    set -euo pipefail
+    repo="$(pwd)"
+    artifacts_dir="{{artifacts_dir}}"
+    template_path="$artifacts_dir/{{vm}}.yaml"
+    mkdir -p "{{exchange_dir}}" "$artifacts_dir"
+    if [ ! -f "$template_path" ]; then
+      just build-image "{{vm}}"
+    fi
+    if [ -d "$HOME/.lima/{{vm}}" ]; then
+      limactl start "{{vm}}"
+    else
+      limactl start --name="{{vm}}" --cpus={{cpus}} --memory={{memory}} --disk={{disk}} --mount-only "$repo" --mount-only "{{exchange_dir}}:w" --yes "$template_path"
+    fi
 
 # Stop the VM
 [group('lifecycle')]
 stop vm=name:
-    {{nix_shell}} limactl stop {{vm}}
+    limactl stop "{{vm}}"
 
 # Remove the VM (destructive)
 [group('lifecycle')]
 delete vm=name:
-    {{nix_shell}} limactl delete {{vm}}
+    limactl delete "{{vm}}"
 
-# Wipe the VM and start fresh (leading `-` tolerates a non-existent VM)
+# Wipe the VM and start fresh from the current local image
 [group('lifecycle')]
 recreate vm=name:
-    -{{nix_shell}} limactl delete --force {{vm}}
-    just start {{vm}}
+    -limactl delete --force "{{vm}}"
+    just start "{{vm}}"
 
 # List all Lima VMs
 [group('lifecycle')]
 list:
-    {{nix_shell}} limactl list
+    limactl list
 
 # --- Access ---
 
 # Open a shell in the VM
 [group('access')]
 shell vm=name:
-    {{nix_shell}} limactl shell {{vm}}
+    limactl shell "{{vm}}"
 
 # Print Lima's generated SSH config for the VM
 [group('access')]
 ssh-config vm=name:
-    {{nix_shell}} limactl show-ssh --format=config {{vm}}
+    limactl show-ssh --format=config "{{vm}}"
 
 # SSH into the VM using Lima's generated config (no global config mutation)
 [group('access')]
-ssh *args='':
-    ssh -F ~/.lima/{{name}}/ssh.config lima-{{name}} {{args}}
+ssh vm=name *args='':
+    ssh -F ~/.lima/{{vm}}/ssh.config lima-{{vm}} {{args}}
+
+# Apply the standalone Home Manager config from the mounted repo.
+[group('access')]
+home-switch vm=name:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    repo="$(pwd)"
+    case "$(ssh -F "$HOME/.lima/{{vm}}/ssh.config" lima-{{vm}} uname -m)" in
+      aarch64|arm64) linux_system="aarch64-linux" ;;
+      x86_64) linux_system="x86_64-linux" ;;
+      *) echo "Unsupported guest architecture" >&2; exit 1 ;;
+    esac
+    ssh -F "$HOME/.lima/{{vm}}/ssh.config" lima-{{vm}} "home-manager switch --impure --flake '$repo#devbox-$linux_system'"

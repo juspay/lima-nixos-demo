@@ -1,62 +1,123 @@
 # devbox
 
-NixOS based devbox on macOS — a [`justfile`](justfile) + flake that boots and provisions a customized NixOS VM via [Lima](https://lima-vm.io/).
+NixOS based devbox on macOS via [Lima](https://lima-vm.io/).
+
+The host only needs `limactl` and `just`. Nix runs inside the VM:
+
+- A temporary builder VM builds a local qcow2 image from this flake.
+- The working VM boots directly from that local image.
+- User Home Manager state is not baked into the image.
+- [`home/home.nix`](home/home.nix) stays user-editable on the host and is applied explicitly with `just home-switch`.
 
 ## Requirements
 
-- [Nix](https://nixos.asia/en/install) (everything else comes from the devShell)
+- [`limactl`](https://lima-vm.io/)
 - [`just`](https://github.com/casey/just)
 
-Run `nix develop` once to enter a shell with `lima` + `just` pinned, or let each recipe invoke `nix develop -c` automatically.
+No host-side Nix install is required for normal use.
 
 ## Usage
 
 ```sh
 just              # list recipes
-just start        # create + boot the VM, then apply our flake (nixos-rebuild)
-just provision    # re-apply the flake (after editing config)
+just build-image  # build/update the local qcow2 via a temporary builder VM
+just start        # boot the working VM from the local qcow2
+just home-switch  # apply home/home.nix inside the running VM
 just shell        # open a shell in the VM
 just stop         # stop the VM
 just delete       # remove the VM
-just recreate     # wipe and start fresh
+just recreate     # delete and recreate the VM from the current local qcow2
 just list         # list all Lima VMs
 ```
 
-First `just start` takes a few minutes: it boots the stock `github:nixos-lima` image, then `nixos-rebuild switch` applies our [`flake.nix`](flake.nix) on top (system + home-manager in one shot).
+`just start` will automatically run `just build-image` first if the local qcow2 is missing.
 
-The VM user and hostname default to your macOS `$USER` / `devbox`. CPU / memory / disk default to `host cores − 2`, `host RAM − 4 GiB`, and `half of host free disk`. Memory is a ceiling (the vz driver demand-pages from the host); disk is a ceiling (Lima's qcow2 is sparse and grows lazily); CPU over-subscription is cheap. Override any default with `just --set`, e.g. `just --set cpus 4 --set memory 16 --set disk 200 start`.
+Image artifacts live outside `~/.lima` by default, under `~/Library/Caches/devbox`. This matters because Lima treats directories under `~/.lima` as instance state.
 
-## What's in the VM
+## What Lives Where
 
-System (via [`nixos/configuration.nix`](nixos/configuration.nix)): `nix-ld`, flakes, passwordless `wheel` sudo, `systemd-logind` lingering for the user, [`nixos-vscode-server`](https://github.com/nix-community/nixos-vscode-server).
+System image:
 
-User (via [`home/home.nix`](home/home.nix)): `starship`, `direnv` + `nix-direnv`, `btop`, `just`, `gh`.
+- Defined by [`nixos/configuration.nix`](nixos/configuration.nix)
+- Built inside a temporary Lima builder VM
+- Includes `home-manager`, `git`, `just`, `direnv`, `nix-direnv`, `starship`, and the rest of the machine-level setup
 
-## SSH access
+User home config:
+
+- Defined by [`home/home.nix`](home/home.nix)
+- Not baked into the qcow2
+- Applied on demand with `just home-switch`
+- Uses the guest's current `$USER` and `$HOME` during activation
+
+## Working on Projects
+
+The working VM mounts only:
+
+- This repo, read-only
+- `~/Shared/devbox-exchange`, writable
+
+It does not mount your full macOS home by default.
+
+That means:
+
+- Edit [`home/home.nix`](home/home.nix) on the host
+- Run `just home-switch` when you want to apply it
+- Keep active repos inside the guest filesystem, for example `~/code`
+- Use `~/Shared/devbox-exchange` only for intentional file transfer
+
+Example:
 
 ```sh
-just ssh                # SSH into the VM (uses Lima's generated config, no global mutation)
-just ssh uname -a       # run a command over SSH
-just ssh-config         # print Lima's generated SSH config
+just start
+just home-switch
+just ssh mkdir -p ~/code
+just ssh 'cd ~/code && git clone ...'
+```
+
+## Refreshing Changes
+
+After editing [`nixos/configuration.nix`](nixos/configuration.nix):
+
+```sh
+just build-image
+just recreate
+```
+
+After editing [`home/home.nix`](home/home.nix):
+
+```sh
+just home-switch
+```
+
+If you already have an older VM from the previous workflow, run `just recreate` once to pick up the new mount defaults and local-image boot flow.
+
+If you tested an earlier revision of this repo and see Lima errors mentioning `devbox-artifacts/lima.yaml`, remove the stale directory once:
+
+```sh
+rm -rf ~/.lima/devbox-artifacts
+```
+
+## SSH Access
+
+```sh
+just ssh
+just ssh uname -a
+just ssh-config
 ```
 
 ## VSCode Remote-SSH
 
-Point VSCode at Lima's generated SSH config — no `~/.ssh/config` mutation, no tunnel service:
+Point VSCode at Lima's generated SSH config:
 
-1. `Cmd-Shift-P` → **Remote-SSH: Settings** → set **Config File** to `~/.lima/devbox/ssh.config`.
-2. `Cmd-Shift-P` → **Remote-SSH: Connect to Host…** → pick `lima-devbox`.
+1. `Cmd-Shift-P` → **Remote-SSH: Settings** → set **Config File** to `~/.lima/devbox/ssh.config`
+2. `Cmd-Shift-P` → **Remote-SSH: Connect to Host…** → pick `lima-devbox`
 
-That's the whole setup. Subsequent connects are one command.
+## Security Posture
 
-## Working on projects inside the VM
+The default workflow is designed to avoid ambient host-secret exposure:
 
-Lima mounts your macOS home at `/Users/<you>` inside the guest **read-only**. For development, clone repos into the guest's own filesystem (writable, faster, no 9p overhead):
+- no full-`HOME` mount
+- no host-side Nix requirement
+- only a narrow repo mount plus a single exchange directory
 
-```sh
-just ssh
-mkdir -p ~/code && cd ~/code
-git clone …
-```
-
-The mount's read-only state is the Lima default; we keep it. If you want to override it (or anything else in the template), [`flake.nix`](flake.nix) has a `yq`-based pattern commented next to the `lima-template` derivation.
+So credentials in host paths like `~/.aws`, `~/.ssh`, and `~/.config` are not exposed to the working VM unless you deliberately broaden the mount set.
