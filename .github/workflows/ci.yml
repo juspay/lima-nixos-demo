@@ -57,6 +57,18 @@ jobs:
             command -v btop
           "
 
+      - name: Dump Lima logs
+        if: failure()
+        run: |
+          for vm in "$DEVBOX_VM" "$DEVBOX_VM-builder"; do
+            dir="$HOME/.lima/$vm"
+            if [ -d "$dir" ]; then
+              echo "::group::Lima logs for $vm"
+              find "$dir" -maxdepth 1 -type f \( -name '*.log' -o -name '*.stderr' -o -name '*.err' \) -print -exec sed -n '1,240p' {} \;
+              echo "::endgroup::"
+            fi
+          done
+
       - name: Cleanup Lima VMs
         if: always()
         run: |
