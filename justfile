@@ -71,18 +71,7 @@ build-image vm=name:
       mount_args=(--mount-only "$repo")
     else
       mounted_builder_template="$artifacts_dir/{{vm}}-builder.yaml"
-      if [[ "$builder_template" =~ ^https?:// ]]; then
-        curl -fsSL "$builder_template" > "$mounted_builder_template"
-      else
-        cp "$builder_template" "$mounted_builder_template"
-      fi
-      awk '
-        /^[^[:space:]-][^:]*:/ { skip = 0 }
-        /^mounts:/ { skip = 1; next }
-        !skip { print }
-      ' "$mounted_builder_template" > "$mounted_builder_template.tmp"
-      printf 'mounts:\n- location: "%s"\n  writable: false\n' "$repo" >> "$mounted_builder_template.tmp"
-      mv "$mounted_builder_template.tmp" "$mounted_builder_template"
+      sed "s|__REPO_LOCATION__|$repo|g" "$repo/lima/builder.yaml.in" > "$mounted_builder_template"
       builder_template="$mounted_builder_template"
     fi
     limactl start --arch="$lima_arch" --name="{{vm}}-builder" --cpus={{cpus}} --memory={{memory}} --disk={{disk}} "${mount_args[@]}" --yes "$builder_template"
