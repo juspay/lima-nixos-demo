@@ -6,27 +6,23 @@ on:
   pull_request:
 
 jobs:
-  # macOS-only: our flake targets aarch64-linux inside the VM, but builds
-  # nothing on Linux runners. Darwin hosts can still eval the NixOS config
-  # (Nix evaluation is cross-system) and actually build the darwin outputs.
-  check:
-    runs-on: macos-latest
+  build:
+    runs-on: x86_64-linux
+    strategy:
+      fail-fast: false
+      matrix:
+        system:
+          - x86_64-linux
+          - aarch64-linux
+    env:
+      NIX_CONFIG: |
+        experimental-features = nix-command flakes
+        accept-flake-config = true
     steps:
       - uses: actions/checkout@v4
 
-      - uses: nixbuild/nix-quick-install-action@v34
-        with:
-          nix_conf: |
-            experimental-features = nix-command flakes
-            accept-flake-config = true
+      - name: Build NixOS system
+        run: nix build --no-link --print-out-paths ".#nixosConfigurations.devbox-${{ matrix.system }}.config.system.build.toplevel"
 
-      # --impure is required because default.nix reads $USER via
-      # builtins.getEnv (the runner sets USER=runner, which is fine).
-      - name: nix flake check
-        run: nix flake check --impure --show-trace
-
-      - name: build lima-template
-        run: nix build --no-link --print-out-paths .#lima-template
-
-      - name: verify devShell + justfile parse
-        run: nix develop --command just --list
+      - name: Build Lima image
+        run: nix build --no-link --print-out-paths ".#packages.${{ matrix.system }}.devbox-image"
