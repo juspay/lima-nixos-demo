@@ -9,6 +9,86 @@ NixOS based devbox on macOS — a [`justfile`](justfile) + flake that boots and 
 
 Run `nix develop` once to enter a shell with `lima`, `just`, and `gh` pinned, or let each recipe invoke `nix develop -c` automatically.
 
+If you only want to run the published devbox image, you do not need Nix or this repository. See [Non-Nix users](#non-nix-users).
+
+## Non-Nix users
+
+You can use the published devbox image with Lima only. You do not need Nix or this repository.
+
+Install Lima first. On macOS with Homebrew:
+
+```sh
+brew install lima
+```
+
+For MacPorts, binary archives, or other hosts, see the [Lima installation docs](https://lima-vm.io/docs/installation/).
+
+Start devbox from the latest published release template:
+
+```sh
+mkdir -p /tmp/lima-devbox
+limactl start --name=devbox https://github.com/juspay/devbox/releases/latest/download/devbox-lima.yaml
+```
+
+Lima's defaults are fine for a first run. To size the VM like this repo's `just start` recipe on macOS:
+
+```sh
+cpus=$(( $(sysctl -n hw.ncpu) - 2 ))
+memory=$(( $(sysctl -n hw.memsize) / 1073741824 - 4 ))
+disk=$(( $(df -k / | awk 'NR==2 {print $4}') / 1024 / 1024 / 2 ))
+
+mkdir -p /tmp/lima-devbox
+limactl start \
+  --name=devbox \
+  --cpus="$cpus" \
+  --memory="$memory" \
+  --disk="$disk" \
+  https://github.com/juspay/devbox/releases/latest/download/devbox-lima.yaml
+```
+
+Open a shell:
+
+```sh
+limactl shell --workdir=. devbox
+```
+
+Use `--workdir=.` because devbox does not mount your macOS home directory. Plain `limactl shell devbox` makes Lima try to enter your macOS current directory inside the guest when any host mount exists, and that path is intentionally unavailable.
+
+Clone projects inside the VM:
+
+```sh
+mkdir -p ~/code && cd ~/code
+git clone …
+```
+
+Move files intentionally through the scratch directory:
+
+```sh
+# On macOS:
+cp ./some-file /tmp/lima-devbox/
+
+# Inside devbox:
+cp /tmp/lima-devbox/some-file .
+```
+
+To stop or delete the VM:
+
+```sh
+limactl stop devbox
+limactl delete devbox
+```
+
+To pin a specific devbox release instead of following `latest`, replace the template URL with:
+
+```text
+https://github.com/juspay/devbox/releases/download/<tag>/devbox-lima.yaml
+```
+
+```sh
+tag=<tag>
+limactl start --name=devbox "https://github.com/juspay/devbox/releases/download/$tag/devbox-lima.yaml"
+```
+
 ## Usage
 
 ```sh
@@ -26,17 +106,6 @@ just list         # list all Lima VMs
 First `just start` downloads and boots the latest `juspay/devbox` GitHub release template. That template keeps the locked `nixos-lima` integration defaults, points at the matching devbox qcow2 assets with SHA-512 digests, and mounts only `/tmp/lima-devbox` from the host for intentional file transfer.
 
 The VM name is `devbox`, and the guest user defaults to your macOS `$USER`. CPU / memory / disk default to `host cores − 2`, `host RAM − 4 GiB`, and `half of host free disk`. Memory is a ceiling (the vz driver demand-pages from the host); disk is a ceiling (Lima's qcow2 is sparse and grows lazily); CPU over-subscription is cheap. Override any default with `just --set`, e.g. `just --set cpus 4 --set memory 16 --set disk 200 start`.
-
-## Direct Lima usage
-
-You can use the published image without Nix or this repo's `justfile`:
-
-```sh
-limactl start --name=devbox https://github.com/juspay/devbox/releases/latest/download/devbox-lima.yaml
-limactl shell --workdir=. devbox
-```
-
-Use `--workdir=.` when opening a shell. Because the template mounts host `/tmp/lima-devbox` at guest `/tmp/lima-devbox`, plain `limactl shell devbox` makes Lima try to enter your macOS current directory inside the guest. That path is not mounted.
 
 ## What's in the VM
 
