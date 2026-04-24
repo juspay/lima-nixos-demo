@@ -15,7 +15,7 @@ permissions:
   contents: write
 
 jobs:
-  build-and-upload:
+  build:
     name: Build ${{ matrix.guest-arch }} image
     runs-on: ${{ matrix.runner }}
     strategy:
@@ -61,7 +61,96 @@ jobs:
           nix develop .#ci -c qemu-img convert -O qcow2 -c "$src" "$dst"
           nix develop .#ci -c sha512sum "$dst" > "$dst.sha512"
 
+      - name: Upload image metadata artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-metadata-${{ matrix.guest-arch }}
+          path: devbox-${{ env.RELEASE_TAG }}-${{ matrix.guest-arch }}.qcow2.sha512
+          if-no-files-found: error
+
       - name: Upload image to release
+        if: github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          upload_asset() {
+            local asset=$1
+            local attempt
+            for attempt in 1 2 3; do
+              if nix develop .#ci -c gh release upload "$RELEASE_TAG" "$asset" --clobber; then
+                return 0
+              fi
+              sleep "$((attempt * 10))"
+              echo "Upload attempt $attempt failed for $asset"
+            done
+            return 1
+          }
+
+          nix develop .#ci -c gh release view "$RELEASE_TAG"
+          upload_asset "devbox-${RELEASE_TAG}-${{ matrix.guest-arch }}.qcow2"
+          upload_asset "devbox-${RELEASE_TAG}-${{ matrix.guest-arch }}.qcow2.sha512"
+
+  publish-lima-template:
+    name: Publish Lima template
+    runs-on: x86_64-linux
+    needs: build
+    env:
+      RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag || github.sha }}
+      RELEASE_BASE_URL: https://github.com/${{ github.repository }}/releases/download/${{ github.event.release.tag_name || inputs.tag || github.sha }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Download image metadata artifacts
+        uses: actions/download-artifact@v8
+        with:
+          pattern: release-metadata-*
+          merge-multiple: true
+
+      - name: Generate Lima template
+        run: |
+          set -euo pipefail
+          nix develop .#ci -c bash <<'EOF'
+          set -euo pipefail
+
+          base_template="$(nix build --no-link --print-out-paths .#lima-template)"
+
+          sha_for() {
+            local arch=$1
+            local file="devbox-${RELEASE_TAG}-${arch}.qcow2.sha512"
+            awk '{ print $1 }' "$file"
+          }
+
+          images_json="$(
+            jq -n \
+              --arg base "$RELEASE_BASE_URL" \
+              --arg tag "$RELEASE_TAG" \
+              --arg aarch64_sha "$(sha_for aarch64)" \
+              --arg x86_64_sha "$(sha_for x86_64)" \
+              '[
+                {
+                  location: ($base + "/devbox-" + $tag + "-aarch64.qcow2"),
+                  arch: "aarch64",
+                  digest: ("sha512:" + $aarch64_sha)
+                },
+                {
+                  location: ($base + "/devbox-" + $tag + "-x86_64.qcow2"),
+                  arch: "x86_64",
+                  digest: ("sha512:" + $x86_64_sha)
+                }
+              ]'
+          )"
+
+          COMMENT="Generated from juspay/devbox ${RELEASE_TAG}" \
+            IMAGES="$images_json" \
+            yq -P '.images = env(IMAGES) | . headComment = strenv(COMMENT)' "$base_template" > devbox-lima.yaml
+
+          sha512sum devbox-lima.yaml > devbox-lima.yaml.sha512
+          EOF
+
+      - name: Upload Lima template to release
         if: github.event_name != 'pull_request'
         env:
           GH_TOKEN: ${{ github.token }}
@@ -69,6 +158,6 @@ jobs:
           set -euo pipefail
           nix develop .#ci -c gh release view "$RELEASE_TAG"
           nix develop .#ci -c gh release upload "$RELEASE_TAG" \
-            "devbox-${RELEASE_TAG}-${{ matrix.guest-arch }}.qcow2" \
-            "devbox-${RELEASE_TAG}-${{ matrix.guest-arch }}.qcow2.sha512" \
+            devbox-lima.yaml \
+            devbox-lima.yaml.sha512 \
             --clobber

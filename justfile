@@ -22,39 +22,60 @@ default:
 
 # --- Lifecycle ---
 
-# We build the Lima template from our locked `nixos-lima` flake input
-# via `.#lima-template`, so `limactl start` sees exactly the pinned
-# version (qcow2 digest included) instead of refetching master.
+# The latest release publishes a ready-to-use Lima template with image
+# URLs and SHA-512 digests baked in.
 
-# Create and start the NixOS VM, then apply our custom config
+# Create and start the NixOS VM from a release image
 [group('lifecycle')]
-start vm=name:
-    {{nix_shell}} limactl start --name={{vm}} --cpus={{cpus}} --memory={{memory}} --disk={{disk}} --yes $(nix build --no-link --print-out-paths .#lima-template)
-    just provision {{vm}}
+start release="latest":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    release="{{release}}"
+    if [ "$release" = "latest" ]; then
+      template_url="https://github.com/juspay/devbox/releases/latest/download/devbox-lima.yaml"
+    else
+      template_url="https://github.com/juspay/devbox/releases/download/$release/devbox-lima.yaml"
+    fi
+    {{nix_shell}} limactl start --name={{name}} --cpus={{cpus}} --memory={{memory}} --disk={{disk}} --yes "$template_url"
 
-# `--workdir /tmp` keeps CWD off Lima's Users-<user> 9p mount so that
-# switch-to-configuration can restart that mount unit cleanly.
-
-# Apply our NixOS config inside the VM (idempotent)
+# Delete Lima's downloaded devbox image cache for a release
 [group('lifecycle')]
-provision vm=name:
-    {{nix_shell}} limactl shell --workdir /tmp {{vm}} -- sudo nixos-rebuild switch --flake $(pwd)#devbox
+delete-downloaded-images release="dev":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    release="{{release}}"
+    if [ "$(uname -s)" = "Darwin" ]; then
+      cache_root="$HOME/Library/Caches/lima/download/by-url-sha256"
+    else
+      cache_root="${XDG_CACHE_HOME:-$HOME/.cache}/lima/download/by-url-sha256"
+    fi
+
+    [ -d "$cache_root" ] || exit 0
+    for arch in aarch64 x86_64; do
+      url="https://github.com/juspay/devbox/releases/download/$release/devbox-$release-$arch.qcow2"
+      while IFS= read -r entry; do
+        if [ -f "$entry/url" ] && grep -Fxq "$url" "$entry/url"; then
+          rm -rf "$entry"
+        fi
+      done < <(find "$cache_root" -mindepth 1 -maxdepth 1 -type d)
+    done
 
 # Stop the VM
 [group('lifecycle')]
-stop vm=name:
-    {{nix_shell}} limactl stop {{vm}}
+stop:
+    {{nix_shell}} limactl stop {{name}}
 
 # Remove the VM (destructive)
 [group('lifecycle')]
-delete vm=name:
-    {{nix_shell}} limactl delete {{vm}}
+delete:
+    {{nix_shell}} limactl delete {{name}}
 
 # Wipe the VM and start fresh (leading `-` tolerates a non-existent VM)
 [group('lifecycle')]
-recreate vm=name:
-    -{{nix_shell}} limactl delete --force {{vm}}
-    just start {{vm}}
+recreate release="latest":
+    -{{nix_shell}} limactl delete --force {{name}}
+    just delete-downloaded-images {{release}}
+    just start {{release}}
 
 # List all Lima VMs
 [group('lifecycle')]
@@ -65,13 +86,13 @@ list:
 
 # Open a shell in the VM
 [group('access')]
-shell vm=name:
-    {{nix_shell}} limactl shell {{vm}}
+shell:
+    {{nix_shell}} limactl shell {{name}}
 
 # Print Lima's generated SSH config for the VM
 [group('access')]
-ssh-config vm=name:
-    {{nix_shell}} limactl show-ssh --format=config {{vm}}
+ssh-config:
+    {{nix_shell}} limactl show-ssh --format=config {{name}}
 
 # SSH into the VM using Lima's generated config (no global config mutation)
 [group('access')]
@@ -80,12 +101,27 @@ ssh *args='':
 
 # --- Release ---
 
-# Create a GitHub release. The Release Images workflow uploads qcow2 assets.
+# Create a GitHub release and start image uploads
 [group('release')]
 release version:
     {{nix_shell}} gh release create "{{version}}" --repo juspay/devbox --target main --title "Release {{version}}" --notes "Devbox image release {{version}}"
-
-# Re-run image upload workflow for an existing release
-[group('release')]
-release-images version:
     {{nix_shell}} gh workflow run release-images.yml --repo juspay/devbox --ref main -f tag="{{version}}"
+
+# Recreate the mutable dev prerelease from the current branch
+[group('release')]
+release-development tag="dev":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    branch="$(git branch --show-current)"
+    if [ -z "$branch" ]; then
+      echo "release-development must be run from a branch, not detached HEAD" >&2
+      exit 1
+    fi
+    {{nix_shell}} gh release delete "{{tag}}" --repo juspay/devbox --yes --cleanup-tag || true
+    {{nix_shell}} gh release create "{{tag}}" \
+      --repo juspay/devbox \
+      --target "$branch" \
+      --title "Development" \
+      --notes "Mutable development image release from $branch" \
+      --prerelease
+    {{nix_shell}} gh workflow run release-images.yml --repo juspay/devbox --ref "$branch" -f tag="{{tag}}"

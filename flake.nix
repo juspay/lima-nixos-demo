@@ -33,7 +33,9 @@
             packages = with pkgs; [
               coreutils
               gh
+              jq
               qemu
+              yq-go
             ];
           };
         });
@@ -43,7 +45,7 @@
       # mounts), swap the `cp` for a `yq` transform, for example:
       #   nativeBuildInputs = [ pkgs.yq-go ];
       #   yq '.mounts |= map(.writable = true)' ${nixos-lima}/.lima.yaml > $out
-      packages = forEach darwinSystems (system:
+      packages = forEach systems (system:
         let pkgs = nixpkgs.legacyPackages.${system}; in {
           lima-template = pkgs.runCommand "nixos-lima-template" { } ''
             cp ${nixos-lima}/.lima.yaml $out
