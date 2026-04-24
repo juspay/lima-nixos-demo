@@ -79,12 +79,27 @@ ssh *args='':
 
 # --- Release ---
 
-# Create a GitHub release. The Release Images workflow uploads qcow2 assets.
+# Create a GitHub release and start image uploads
 [group('release')]
 release version:
     {{nix_shell}} gh release create "{{version}}" --repo juspay/devbox --target main --title "Release {{version}}" --notes "Devbox image release {{version}}"
-
-# Re-run image upload workflow for an existing release
-[group('release')]
-release-images version:
     {{nix_shell}} gh workflow run release-images.yml --repo juspay/devbox --ref main -f tag="{{version}}"
+
+# Recreate the mutable dev prerelease from the current branch
+[group('release')]
+release-development tag="dev":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    branch="$(git branch --show-current)"
+    if [ -z "$branch" ]; then
+      echo "release-development must be run from a branch, not detached HEAD" >&2
+      exit 1
+    fi
+    {{nix_shell}} gh release delete "{{tag}}" --repo juspay/devbox --yes --cleanup-tag || true
+    {{nix_shell}} gh release create "{{tag}}" \
+      --repo juspay/devbox \
+      --target "$branch" \
+      --title "Development" \
+      --notes "Mutable development image release from $branch" \
+      --prerelease
+    {{nix_shell}} gh workflow run release-images.yml --repo juspay/devbox --ref "$branch" -f tag="{{tag}}"

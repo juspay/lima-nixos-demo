@@ -46,13 +46,13 @@ just release v0.1.0
 
 Publishing the release starts the `Release Images` workflow. The workflow builds and compresses the x86_64 image on the self-hosted `x86_64-linux` runner and the aarch64 image on GitHub's `ubuntu-24.04-arm` runner, then uploads the qcow2, SHA-512, and Lima template assets to the release.
 
-To rerun uploads for an existing release after this workflow is on `main`:
+For PR testing, use the mutable dev prerelease:
 
 ```sh
-just release-images v0.1.0
+just release-development
 ```
 
-Rerunning the workflow also regenerates `devbox-lima.yaml`, which is useful when backfilling the template asset for an existing release.
+That recreates the `dev` release at the current branch and dispatches the image workflow on that branch. Its assets are overwritten on each run, so use it only for disposable testing.
 
 ## Security model
 
