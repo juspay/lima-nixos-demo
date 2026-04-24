@@ -23,28 +23,13 @@ brew install lima
 
 For MacPorts, binary archives, or other hosts, see the [Lima installation docs](https://lima-vm.io/docs/installation/).
 
-Start devbox from the latest published release template:
+Launch devbox:
 
 ```sh
-mkdir -p /tmp/lima-devbox
-limactl start --name=devbox https://github.com/juspay/devbox/releases/latest/download/devbox-lima.yaml
+curl -fsSL https://juspay.github.io/devbox/start | sh -
 ```
 
-Lima's defaults are fine for a first run. To size the VM like this repo's `just start` recipe on macOS:
-
-```sh
-cpus=$(( $(sysctl -n hw.ncpu) - 2 ))
-memory=$(( $(sysctl -n hw.memsize) / 1073741824 - 4 ))
-disk=$(( $(df -k / | awk 'NR==2 {print $4}') / 1024 / 1024 / 2 ))
-
-mkdir -p /tmp/lima-devbox
-limactl start \
-  --name=devbox \
-  --cpus="$cpus" \
-  --memory="$memory" \
-  --disk="$disk" \
-  https://github.com/juspay/devbox/releases/latest/download/devbox-lima.yaml
-```
+The script creates `/tmp/lima-devbox`, sizes CPU / memory / disk from your host, starts the latest published release image, and prints the next commands. If `devbox` is already running, it says so and leaves it alone. If the VM exists but is stopped, it starts it. If the image is not cached yet, Lima downloads it.
 
 Open a shell:
 
@@ -53,6 +38,14 @@ limactl shell --workdir=. devbox
 ```
 
 Use `--workdir=.` because devbox does not mount your macOS home directory. Plain `limactl shell devbox` makes Lima try to enter your macOS current directory inside the guest when any host mount exists, and that path is intentionally unavailable.
+
+To customize the launch:
+
+```sh
+curl -fsSL https://juspay.github.io/devbox/start | sh -s -- --help
+curl -fsSL https://juspay.github.io/devbox/start | sh -s -- --tag <tag>
+curl -fsSL https://juspay.github.io/devbox/start | sh -s -- --cpus 8 --memory 16 --disk 200
+```
 
 Clone projects inside the VM:
 
@@ -78,11 +71,15 @@ limactl stop devbox
 limactl delete devbox
 ```
 
-To pin a specific devbox release instead of following `latest`, replace the template URL with:
+If you prefer not to pipe a script into `sh`, download it first:
 
-```text
-https://github.com/juspay/devbox/releases/download/<tag>/devbox-lima.yaml
+```sh
+curl -fsSLO https://juspay.github.io/devbox/start
+sh start --help
+sh start
 ```
+
+Or call Lima directly:
 
 ```sh
 tag=<tag>
