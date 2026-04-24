@@ -7,7 +7,7 @@ NixOS based devbox on macOS — a [`justfile`](justfile) + flake that boots and 
 - [Nix](https://nixos.asia/en/install) (everything else comes from the devShell)
 - [`just`](https://github.com/casey/just)
 
-Run `nix develop` once to enter a shell with `lima`, `just`, `curl`, `jq`, and `gh` pinned, or let each recipe invoke `nix develop -c` automatically.
+Run `nix develop` once to enter a shell with `lima`, `just`, `jq`, `yq`, and `gh` pinned, or let each recipe invoke `nix develop -c` automatically.
 
 ## Usage
 
