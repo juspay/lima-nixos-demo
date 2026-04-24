@@ -24,6 +24,18 @@
       darwinSystems = [ "aarch64-darwin" "x86_64-darwin" ];
       forEach = nixpkgs.lib.genAttrs;
       base = import ./default.nix inputs;
+      limaMessage = ''
+        devbox is ready.
+
+        Open a shell:
+          limactl shell --workdir=. {{.Name}}
+
+        This template intentionally does not mount your macOS home directory.
+        Clone repositories inside the VM, for example under ~/code.
+
+        To transfer files intentionally, use /tmp/lima-devbox on the host and
+        inside the VM.
+      '';
     in
     base // {
       devShells = forEach systems (system:
@@ -47,6 +59,7 @@
         let pkgs = nixpkgs.legacyPackages.${system}; in {
           lima-template = pkgs.runCommand "devbox-lima-template" {
             nativeBuildInputs = [ pkgs.yq-go ];
+            DEVBOX_MESSAGE = limaMessage;
           } ''
             yq -P '
               .mounts = [
@@ -59,6 +72,7 @@
                   }
                 }
               ]
+              | .message = strenv(DEVBOX_MESSAGE)
             ' ${nixos-lima}/.lima.yaml > $out
           '';
         });

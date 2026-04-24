@@ -27,6 +27,17 @@ First `just start` downloads and boots the latest `juspay/devbox` GitHub release
 
 The VM name is `devbox`, and the guest user defaults to your macOS `$USER`. CPU / memory / disk default to `host cores − 2`, `host RAM − 4 GiB`, and `half of host free disk`. Memory is a ceiling (the vz driver demand-pages from the host); disk is a ceiling (Lima's qcow2 is sparse and grows lazily); CPU over-subscription is cheap. Override any default with `just --set`, e.g. `just --set cpus 4 --set memory 16 --set disk 200 start`.
 
+## Direct Lima usage
+
+You can use the published image without Nix or this repo's `justfile`:
+
+```sh
+limactl start --name=devbox https://github.com/juspay/devbox/releases/latest/download/devbox-lima.yaml
+limactl shell --workdir=. devbox
+```
+
+Use `--workdir=.` when opening a shell. The template intentionally has a transfer mount, so plain `limactl shell devbox` makes Lima try to enter your macOS current directory inside the guest. That path is not mounted.
+
 ## What's in the VM
 
 Via [`nixos/devbox.nix`](nixos/devbox.nix): `nix-ld`, flakes, [`nixos-vscode-server`](https://github.com/nix-community/nixos-vscode-server), `starship`, `direnv` + `nix-direnv`, `btop`, `just`, `gh`.
