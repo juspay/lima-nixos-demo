@@ -36,6 +36,8 @@ The flake can build baked Lima-compatible qcow2 images from `nixosConfigurations
 
 `just start` uses `https://github.com/juspay/devbox/releases/latest/download/devbox-lima.yaml`; `just start dev` uses `https://github.com/juspay/devbox/releases/download/dev/devbox-lima.yaml`.
 
+Because the `dev` release is mutable, `just start dev` clears matching Lima image cache entries before starting. Tagged releases keep Lima's normal download cache.
+
 ## Cutting a release
 
 After merging release-image changes, create a GitHub release:

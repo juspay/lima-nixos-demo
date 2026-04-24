@@ -31,10 +31,32 @@ start release="latest":
     #!/usr/bin/env bash
     set -euo pipefail
     release="{{release}}"
+
+    clear_lima_cached_download() {
+      local url=$1
+      local cache_root
+      if [ "$(uname -s)" = "Darwin" ]; then
+        cache_root="$HOME/Library/Caches/lima/download/by-url-sha256"
+      else
+        cache_root="${XDG_CACHE_HOME:-$HOME/.cache}/lima/download/by-url-sha256"
+      fi
+
+      [ -d "$cache_root" ] || return 0
+      while IFS= read -r entry; do
+        if [ -f "$entry/url" ] && grep -Fxq "$url" "$entry/url"; then
+          rm -rf "$entry"
+        fi
+      done < <(find "$cache_root" -mindepth 1 -maxdepth 1 -type d)
+    }
+
     if [ "$release" = "latest" ]; then
       template_url="https://github.com/juspay/devbox/releases/latest/download/devbox-lima.yaml"
     else
       template_url="https://github.com/juspay/devbox/releases/download/$release/devbox-lima.yaml"
+    fi
+    if [ "$release" = "dev" ]; then
+      clear_lima_cached_download "https://github.com/juspay/devbox/releases/download/dev/devbox-dev-aarch64.qcow2"
+      clear_lima_cached_download "https://github.com/juspay/devbox/releases/download/dev/devbox-dev-x86_64.qcow2"
     fi
     {{nix_shell}} limactl start --name={{name}} --cpus={{cpus}} --memory={{memory}} --disk={{disk}} --yes "$template_url"
 
