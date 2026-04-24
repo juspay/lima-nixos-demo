@@ -46,14 +46,14 @@
       .page {
         margin: 0 auto;
         max-width: 1080px;
-        padding: 24px 28px 34px;
+        padding: 20px 28px 22px;
       }
 
       nav {
         align-items: center;
         display: flex;
         justify-content: space-between;
-        margin-bottom: 42px;
+        margin-bottom: 22px;
       }
 
       .brand {
@@ -88,12 +88,12 @@
 
       main {
         display: grid;
-        gap: 22px;
+        gap: 14px;
       }
 
       .intro {
         display: grid;
-        gap: 18px;
+        gap: 14px;
       }
 
       .eyebrow {
@@ -105,7 +105,7 @@
       }
 
       h1 {
-        font-size: clamp(42px, 6.5vw, 72px);
+        font-size: clamp(40px, 5.4vw, 58px);
         letter-spacing: 0;
         line-height: 0.98;
         margin: 0;
@@ -116,14 +116,14 @@
         color: var(--muted);
         font-size: clamp(18px, 2.1vw, 22px);
         margin: 0;
-        max-width: 760px;
+        max-width: 680px;
       }
 
       .facts {
         display: flex;
         flex-wrap: wrap;
         gap: 10px;
-        margin: 6px 0 0;
+        margin: 2px 0 0;
         padding: 0;
       }
 
@@ -146,12 +146,12 @@
         border-radius: 8px;
         box-shadow: 0 20px 60px rgba(32, 53, 42, 0.08);
         display: grid;
-        gap: 16px;
-        padding: 18px;
+        gap: 14px;
+        padding: 14px 18px;
       }
 
       .starter-head {
-        align-items: end;
+        align-items: start;
         display: flex;
         gap: 14px;
         justify-content: space-between;
@@ -181,8 +181,8 @@
         display: flex;
         gap: 10px;
         justify-content: space-between;
-        min-height: 42px;
-        padding: 7px 8px 7px 14px;
+        min-height: 38px;
+        padding: 6px 8px 6px 14px;
       }
 
       .terminal-title {
@@ -212,7 +212,7 @@
       pre {
         margin: 0;
         overflow: visible;
-        padding: 16px 18px 18px;
+        padding: 12px 18px 14px;
         white-space: pre-wrap;
         word-break: break-word;
       }
@@ -228,8 +228,12 @@
       }
 
       .workflow {
+        background: rgba(255, 255, 255, 0.78);
+        border: 1px solid var(--line);
+        border-radius: 8px;
         display: grid;
-        gap: 12px;
+        gap: 8px;
+        padding: 12px 18px;
       }
 
       .workflow h2 {
@@ -238,17 +242,18 @@
 
       .steps {
         display: grid;
-        gap: 10px;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0;
       }
 
       .step {
-        background: rgba(255, 255, 255, 0.78);
-        border: 1px solid var(--line);
-        border-radius: 8px;
         display: grid;
-        gap: 8px;
-        padding: 14px;
+        gap: 14px;
+        grid-template-columns: minmax(170px, 0.26fr) minmax(0, 1fr);
+        padding: 9px 0;
+      }
+
+      .step + .step {
+        border-top: 1px solid var(--line);
       }
 
       .step-title {
@@ -278,6 +283,42 @@
       .step code {
         color: var(--ink);
         overflow-wrap: anywhere;
+      }
+
+      .remote-steps {
+        display: grid;
+        gap: 6px;
+        margin: 0;
+        padding-left: 22px;
+      }
+
+      .remote-steps li {
+        color: var(--muted);
+        padding-left: 2px;
+      }
+
+      .remote-steps strong {
+        color: var(--ink);
+      }
+
+      .faq {
+        border-top: 1px solid var(--line);
+        display: grid;
+      }
+
+      details {
+        border-bottom: 1px solid var(--line);
+        padding: 8px 0;
+      }
+
+      summary {
+        cursor: pointer;
+        font-weight: 800;
+      }
+
+      details p {
+        color: var(--muted);
+        margin: 8px 0 0;
       }
 
       .footer-links {
@@ -312,6 +353,12 @@
           grid-template-columns: 1fr;
         }
 
+        .step {
+          gap: 7px;
+          grid-template-columns: 1fr;
+          padding: 13px 0;
+        }
+
         .terminal code {
           font-size: 14px;
         }
@@ -332,16 +379,15 @@
       <main>
         <section class="intro">
           <div class="eyebrow">Prebuilt NixOS on Lima</div>
-          <h1>Local development VM, ready from a release image.</h1>
+          <h1>NixOS VM, ready to run.</h1>
           <p class="lead">
-            devbox starts a disposable NixOS machine without mounting your macOS
-            home directory. Clone code inside the VM, keep file transfer explicit,
-            and reconnect whenever you need a clean workstation.
+            devbox boots a prebuilt Lima image for local development. Your macOS
+            home directory stays outside the VM.
           </p>
           <ul class="facts">
-            <li><strong>Prebuilt</strong> GitHub release images</li>
-            <li><strong>Practical</strong> flakes, direnv, gh, just, VS Code server</li>
-            <li><strong>Contained</strong> only <code>/tmp/lima-devbox</code> is mounted</li>
+            <li><strong>Prebuilt</strong> images</li>
+            <li><strong>Includes</strong> flakes, direnv, gh, just</li>
+            <li><strong>Mounts</strong> only <code>/tmp/lima-devbox</code></li>
           </ul>
         </section>
 
@@ -354,7 +400,6 @@
                 On macOS, run <code>brew install lima</code>.
               </p>
             </div>
-            <p class="note">Reuses a running VM, starts a stopped VM, or creates one from the latest image.</p>
           </div>
 
           <div class="terminal">
@@ -367,26 +412,53 @@
         </section>
 
         <section class="workflow" aria-labelledby="workflow-title">
-          <h2 id="workflow-title">Typical workflow</h2>
+          <h2 id="workflow-title">Work inside devbox</h2>
           <div class="steps">
             <article class="step">
-              <div class="step-title"><span class="step-number">1</span>Open the VM</div>
+              <div class="step-title"><span class="step-number">1</span>Shell</div>
               <p><code>limactl shell --workdir=. devbox</code></p>
             </article>
             <article class="step">
-              <div class="step-title"><span class="step-number">2</span>Clone inside devbox</div>
+              <div class="step-title"><span class="step-number">2</span>Clone</div>
               <p><code>mkdir -p ~/code && cd ~/code && git clone ...</code></p>
             </article>
             <article class="step">
-              <div class="step-title"><span class="step-number">3</span>Use host VS Code</div>
-              <p>Remote-SSH config: <code>~/.lima/devbox/ssh.config</code>, host <code>lima-devbox</code>.</p>
+              <div class="step-title"><span class="step-number">3</span>VS Code</div>
+              <p>Config file: <code>~/.lima/devbox/ssh.config</code>; host: <code>lima-devbox</code>.</p>
             </article>
           </div>
         </section>
 
+        <section class="faq" aria-label="Details">
+          <details>
+            <summary>Exact VS Code steps</summary>
+            <ol class="remote-steps">
+              <li>
+                <strong>Cmd-Shift-P</strong> -> <strong>Remote-SSH: Settings</strong>:
+                set <strong>Config File</strong> to <code>~/.lima/devbox/ssh.config</code>.
+              </li>
+              <li>
+                <strong>Cmd-Shift-P</strong> -> <strong>Remote-SSH: Connect to Host...</strong>:
+                pick <code>lima-devbox</code>.
+              </li>
+            </ol>
+          </details>
+          <details>
+            <summary>File transfer boundary</summary>
+            <p>Use <code>/tmp/lima-devbox</code> intentionally from either side. Clone repos inside the VM.</p>
+          </details>
+          <details>
+            <summary>Customize CPU, memory, disk, or release tag</summary>
+            <p><code>curl -fsSL https://juspay.github.io/devbox/start | sh -s -- --help</code></p>
+          </details>
+          <details>
+            <summary>Why <code>--workdir=.</code>?</summary>
+            <p>devbox does not mount your macOS home directory, so the shell should start in a guest path.</p>
+          </details>
+        </section>
+
         <div class="footer-links">
           <a href="https://github.com/juspay/devbox#non-nix-users">Full setup notes</a>
-          <span>Customize with <code>curl -fsSL https://juspay.github.io/devbox/start | sh -s -- --help</code></span>
         </div>
       </main>
     </div>
