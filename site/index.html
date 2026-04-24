@@ -5,29 +5,257 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>devbox</title>
     <style>
+      :root {
+        color-scheme: light;
+        --ink: #17202a;
+        --muted: #596675;
+        --line: #d8e0e8;
+        --panel: #f7f9fb;
+        --accent: #0b67c2;
+        --green: #1f7a46;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
       body {
+        background: #fff;
+        color: var(--ink);
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-        line-height: 1.5;
-        margin: 3rem auto;
-        max-width: 48rem;
-        padding: 0 1rem;
+        line-height: 1.45;
+        margin: 0;
       }
-      code, pre {
-        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+      a {
+        color: var(--accent);
       }
+
+      .page {
+        margin: 0 auto;
+        max-width: 1040px;
+        padding: 28px 24px 34px;
+      }
+
+      nav {
+        align-items: center;
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 34px;
+      }
+
+      .brand {
+        font-size: 18px;
+        font-weight: 750;
+      }
+
+      .links {
+        display: flex;
+        gap: 18px;
+      }
+
+      .links a {
+        color: var(--muted);
+        font-size: 14px;
+        text-decoration: none;
+      }
+
+      .hero {
+        display: grid;
+        gap: 34px;
+        grid-template-columns: minmax(0, 1.08fr) minmax(340px, 0.92fr);
+        min-height: calc(100vh - 96px);
+      }
+
+      .intro {
+        align-self: center;
+      }
+
+      h1 {
+        font-size: clamp(42px, 7vw, 74px);
+        letter-spacing: 0;
+        line-height: 0.98;
+        margin: 0 0 20px;
+      }
+
+      .lead {
+        color: var(--muted);
+        font-size: 19px;
+        margin: 0 0 24px;
+        max-width: 650px;
+      }
+
+      .facts {
+        display: grid;
+        gap: 10px;
+        margin: 0;
+        padding: 0;
+      }
+
+      .facts li {
+        list-style: none;
+      }
+
+      .facts strong {
+        color: var(--ink);
+      }
+
+      .panel {
+        align-self: center;
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 22px;
+      }
+
+      .panel h2 {
+        font-size: 21px;
+        margin: 0 0 12px;
+      }
+
+      .panel p {
+        color: var(--muted);
+        margin: 0 0 14px;
+      }
+
+      .command {
+        background: #101820;
+        border-radius: 8px;
+        overflow: hidden;
+      }
+
       pre {
-        background: #f6f8fa;
-        border-radius: 6px;
+        margin: 0;
         overflow: auto;
-        padding: 1rem;
+        padding: 16px;
+      }
+
+      code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 13px;
+      }
+
+      .command code {
+        color: #e8eef5;
+      }
+
+      .actions {
+        display: grid;
+        gap: 10px;
+        margin-top: 12px;
+      }
+
+      button {
+        background: var(--green);
+        border: 0;
+        border-radius: 6px;
+        color: white;
+        cursor: pointer;
+        font: inherit;
+        font-weight: 700;
+        min-height: 42px;
+      }
+
+      .secondary {
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .next {
+        border-top: 1px solid var(--line);
+        display: grid;
+        gap: 12px;
+        margin-top: 18px;
+        padding-top: 18px;
+      }
+
+      .next code {
+        color: var(--ink);
+      }
+
+      @media (max-width: 820px) {
+        .page {
+          padding-top: 22px;
+        }
+
+        nav {
+          align-items: flex-start;
+          flex-direction: column;
+          gap: 12px;
+          margin-bottom: 28px;
+        }
+
+        .hero {
+          grid-template-columns: 1fr;
+          min-height: 0;
+        }
+
+        .panel,
+        .intro {
+          align-self: start;
+        }
       }
     </style>
   </head>
   <body>
-    <h1>devbox</h1>
-    <p>Install Lima, then start the latest devbox image:</p>
-    <pre><code>curl -fsSL https://juspay.github.io/devbox/start | sh -</code></pre>
-    <p>Script source: <a href="./start">start</a></p>
-    <p>Repository: <a href="https://github.com/juspay/devbox">juspay/devbox</a></p>
+    <div class="page">
+      <nav>
+        <div class="brand">devbox</div>
+        <div class="links">
+          <a href="https://github.com/juspay/devbox">GitHub</a>
+          <a href="https://lima-vm.io/">Lima</a>
+          <a href="./start">Start Script</a>
+        </div>
+      </nav>
+
+      <main class="hero">
+        <section class="intro">
+          <h1>NixOS devbox for local development.</h1>
+          <p class="lead">
+            A prebuilt NixOS VM image that runs on Lima. Use it as a disposable,
+            repeatable development machine without mounting your macOS home directory.
+          </p>
+          <ul class="facts">
+            <li><strong>Prebuilt:</strong> boots from GitHub release images.</li>
+            <li><strong>Practical:</strong> includes flakes, direnv, VS Code server, gh, just, and common tools.</li>
+            <li><strong>Contained:</strong> exposes only <code>/tmp/lima-devbox</code> for intentional file transfer.</li>
+          </ul>
+        </section>
+
+        <aside class="panel">
+          <h2>Start In One Command</h2>
+          <p>Install Lima first. On macOS, run <code>brew install lima</code>.</p>
+          <div class="command">
+            <pre><code id="start-command">curl -fsSL https://juspay.github.io/devbox/start | sh -</code></pre>
+          </div>
+          <div class="actions">
+            <button type="button" data-copy="#start-command">Copy Command</button>
+            <div class="secondary">
+              The starter reuses a running VM, starts a stopped VM, or creates one from the latest image.
+            </div>
+          </div>
+          <div class="next">
+            <div>Open a shell: <code>limactl shell --workdir=. devbox</code></div>
+            <div>Customize: <code>curl -fsSL https://juspay.github.io/devbox/start | sh -s -- --help</code></div>
+            <div><a href="https://github.com/juspay/devbox#non-nix-users">Read the full setup notes</a></div>
+          </div>
+        </aside>
+      </main>
+    </div>
+
+    <script>
+      for (const button of document.querySelectorAll("[data-copy]")) {
+        button.addEventListener("click", async () => {
+          const target = document.querySelector(button.dataset.copy);
+          if (!target) return;
+          await navigator.clipboard.writeText(target.textContent.trim());
+          const original = button.textContent;
+          button.textContent = "Copied";
+          setTimeout(() => {
+            button.textContent = original;
+          }, 1200);
+        });
+      }
+    </script>
   </body>
 </html>
