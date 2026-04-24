@@ -48,12 +48,6 @@ stop:
 delete:
     {{nix_shell}} limactl delete {{name}}
 
-# Stop and remove the VM (destructive)
-[group('lifecycle')]
-destroy:
-    -just stop
-    just delete
-
 # Wipe the VM and start fresh (leading `-` tolerates a non-existent VM)
 [group('lifecycle')]
 recreate release="latest":
