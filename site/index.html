@@ -169,50 +169,56 @@
       }
 
       .terminal {
+        align-items: center;
         background: var(--terminal);
         border: 1px solid var(--terminal-line);
         border-radius: 8px;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
         overflow: hidden;
       }
 
-      .terminal-bar {
-        align-items: center;
-        border-bottom: 1px solid var(--terminal-line);
-        display: flex;
-        gap: 10px;
-        justify-content: space-between;
-        min-height: 38px;
-        padding: 6px 8px 6px 14px;
-      }
-
-      .terminal-title {
-        color: #aebbc6;
-        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-        font-size: 12px;
-      }
-
       button {
+        align-items: center;
+        align-self: center;
         background: #dff8ea;
-        border: 1px solid rgba(255, 255, 255, 0.14);
+        border: 1px solid rgba(255, 255, 255, 0.16);
         border-radius: 5px;
         color: #073b25;
         cursor: pointer;
+        display: inline-flex;
         font: inherit;
-        font-size: 13px;
-        font-weight: 800;
-        line-height: 1;
-        min-height: 28px;
-        padding: 7px 10px;
+        height: 34px;
+        justify-content: center;
+        margin-right: 8px;
+        padding: 0;
+        width: 34px;
       }
 
       button:hover {
         background: #ccf2dd;
       }
 
+      button svg {
+        height: 16px;
+        width: 16px;
+      }
+
+      button .check-icon,
+      button.copied .copy-icon {
+        display: none;
+      }
+
+      button.copied .check-icon {
+        display: block;
+      }
+
       pre {
+        align-items: center;
+        display: flex;
         margin: 0;
         overflow: visible;
-        padding: 12px 18px 14px;
+        padding: 14px 18px;
         white-space: pre-wrap;
         word-break: break-word;
       }
@@ -362,6 +368,11 @@
         .terminal code {
           font-size: 14px;
         }
+
+        button {
+          height: 32px;
+          width: 32px;
+        }
       }
     </style>
   </head>
@@ -403,11 +414,16 @@
           </div>
 
           <div class="terminal">
-            <div class="terminal-bar">
-              <div class="terminal-title">latest release</div>
-              <button type="button" data-copy="#start-command">Copy</button>
-            </div>
             <pre><code id="start-command">curl -fsSL https://juspay.github.io/devbox/start | sh -</code></pre>
+            <button type="button" data-copy="#start-command" aria-label="Copy start command" title="Copy start command">
+              <svg class="copy-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect width="14" height="14" x="8" y="8" rx="2" ry="2"></rect>
+                <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path>
+              </svg>
+              <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M20 6 9 17l-5-5"></path>
+              </svg>
+            </button>
           </div>
         </section>
 
@@ -445,7 +461,12 @@
           </details>
           <details>
             <summary>Customize CPU, memory, disk, or release tag</summary>
-            <p><code>curl -fsSL https://juspay.github.io/devbox/start | sh -s -- --help</code></p>
+            <p>
+              By default the starter uses the latest release, auto-sizes CPU, memory,
+              and disk from the host, reuses a running VM, and starts a stopped VM.
+              Use <code>--help</code> for overrides:
+              <code>curl -fsSL https://juspay.github.io/devbox/start | sh -s -- --help</code>.
+            </p>
           </details>
           <details>
             <summary>Why <code>--workdir=.</code>?</summary>
@@ -465,10 +486,15 @@
           const target = document.querySelector(button.dataset.copy);
           if (!target) return;
           await navigator.clipboard.writeText(target.textContent.trim());
-          const original = button.textContent;
-          button.textContent = "Copied";
+          const originalLabel = button.getAttribute("aria-label");
+          const originalTitle = button.getAttribute("title");
+          button.classList.add("copied");
+          button.setAttribute("aria-label", "Copied");
+          button.setAttribute("title", "Copied");
           setTimeout(() => {
-            button.textContent = original;
+            button.classList.remove("copied");
+            button.setAttribute("aria-label", originalLabel);
+            button.setAttribute("title", originalTitle);
           }, 1200);
         });
       }
