@@ -36,7 +36,7 @@ limactl start --name=devbox https://github.com/juspay/devbox/releases/latest/dow
 limactl shell --workdir=. devbox
 ```
 
-Use `--workdir=.` when opening a shell. The template intentionally has a transfer mount, so plain `limactl shell devbox` makes Lima try to enter your macOS current directory inside the guest. That path is not mounted.
+Use `--workdir=.` when opening a shell. Because the template mounts host `/tmp/lima-devbox` at guest `/tmp/lima-devbox`, plain `limactl shell devbox` makes Lima try to enter your macOS current directory inside the guest. That path is not mounted.
 
 ## What's in the VM
 
