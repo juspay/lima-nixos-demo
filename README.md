@@ -18,6 +18,7 @@ just start dev    # create + boot the VM from the mutable dev release image
 just shell        # open a shell in the VM
 just stop         # stop the VM
 just delete       # remove the VM
+just delete-downloaded-images dev # clear cached Lima image downloads for dev
 just recreate     # wipe and start fresh
 just list         # list all Lima VMs
 ```
@@ -36,7 +37,7 @@ The flake can build baked Lima-compatible qcow2 images from `nixosConfigurations
 
 `just start` uses `https://github.com/juspay/devbox/releases/latest/download/devbox-lima.yaml`; `just start dev` uses `https://github.com/juspay/devbox/releases/download/dev/devbox-lima.yaml`.
 
-Because the `dev` release is mutable, `just start dev` clears matching Lima image cache entries before starting. Tagged releases keep Lima's normal download cache.
+Because the `dev` release is mutable, `just recreate dev` clears matching Lima image cache entries before starting. Tagged releases keep Lima's normal download cache.
 
 ## Cutting a release
 
