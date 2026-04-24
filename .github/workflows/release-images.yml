@@ -15,7 +15,7 @@ permissions:
   contents: write
 
 jobs:
-  build-and-upload:
+  build:
     name: Build ${{ matrix.guest-arch }} image
     runs-on: ${{ matrix.runner }}
     strategy:
@@ -61,62 +61,19 @@ jobs:
           nix develop .#ci -c qemu-img convert -O qcow2 -c "$src" "$dst"
           nix develop .#ci -c sha512sum "$dst" > "$dst.sha512"
 
-      - name: Upload image metadata artifact
+      - name: Upload image artifact
         uses: actions/upload-artifact@v7
         with:
-          name: release-metadata-${{ matrix.guest-arch }}
-          path: devbox-${{ env.RELEASE_TAG }}-${{ matrix.guest-arch }}.qcow2.sha512
-
-      - name: Upload image to release
-        if: github.event_name != 'pull_request'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          assets=(
-            "devbox-${RELEASE_TAG}-${{ matrix.guest-arch }}.qcow2"
-            "devbox-${RELEASE_TAG}-${{ matrix.guest-arch }}.qcow2.sha512"
-          )
-
-          asset_uploaded() {
-            local asset=$1
-            local assets_json
-            assets_json="$(nix develop .#ci -c gh release view "$RELEASE_TAG" --json assets)"
-            echo "$assets_json" |
-              nix develop .#ci -c jq -e --arg name "$asset" \
-                ".assets[] | select(.name == \$name and .state == \"uploaded\" and .size > 0)" \
-                >/dev/null
-          }
-
-          upload_asset() {
-            local asset=$1
-            local attempt
-            for attempt in 1 2 3; do
-              if nix develop .#ci -c gh release upload "$RELEASE_TAG" "$asset" --clobber; then
-                return 0
-              fi
-
-              sleep "$((attempt * 10))"
-              if asset_uploaded "$asset"; then
-                echo "gh release upload reported failure, but $asset is present"
-                return 0
-              fi
-
-              echo "Upload attempt $attempt failed for $asset"
-            done
-
-            return 1
-          }
-
-          nix develop .#ci -c gh release view "$RELEASE_TAG"
-          for asset in "${assets[@]}"; do
-            upload_asset "$asset"
-          done
+          name: release-image-${{ matrix.guest-arch }}
+          path: |
+            devbox-${{ env.RELEASE_TAG }}-${{ matrix.guest-arch }}.qcow2
+            devbox-${{ env.RELEASE_TAG }}-${{ matrix.guest-arch }}.qcow2.sha512
+          compression-level: 0
 
   publish-lima-template:
     name: Publish Lima template
     runs-on: x86_64-linux
-    needs: build-and-upload
+    needs: build
     env:
       RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag || github.sha }}
       RELEASE_BASE_URL: https://github.com/${{ github.repository }}/releases/download/${{ github.event.release.tag_name || inputs.tag || github.sha }}
@@ -124,10 +81,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
-      - name: Download image metadata artifacts
+      - name: Download image artifacts
         uses: actions/download-artifact@v8
         with:
-          pattern: release-metadata-*
+          pattern: release-image-*
           merge-multiple: true
 
       - name: Generate Lima template
@@ -171,13 +128,18 @@ jobs:
           sha512sum devbox-lima.yaml > devbox-lima.yaml.sha512
           EOF
 
-      - name: Upload Lima template to release
+      - name: Upload assets to release
         if: github.event_name != 'pull_request'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
+          nix develop .#ci -c gh release view "$RELEASE_TAG"
           nix develop .#ci -c gh release upload "$RELEASE_TAG" \
+            "devbox-${RELEASE_TAG}-aarch64.qcow2" \
+            "devbox-${RELEASE_TAG}-aarch64.qcow2.sha512" \
+            "devbox-${RELEASE_TAG}-x86_64.qcow2" \
+            "devbox-${RELEASE_TAG}-x86_64.qcow2.sha512" \
             devbox-lima.yaml \
             devbox-lima.yaml.sha512 \
             --clobber

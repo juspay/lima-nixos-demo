@@ -38,14 +38,6 @@ start release="latest":
     fi
     {{nix_shell}} limactl start --name={{name}} --cpus={{cpus}} --memory={{memory}} --disk={{disk}} --yes "$template_url"
 
-# `--workdir /tmp` keeps CWD off Lima's Users-<user> 9p mount so that
-# switch-to-configuration can restart that mount unit cleanly.
-
-# Apply our NixOS config inside the VM (idempotent)
-[group('lifecycle')]
-provision:
-    {{nix_shell}} limactl shell --workdir /tmp {{name}} -- sudo nixos-rebuild switch --flake $(pwd)#devbox
-
 # Stop the VM
 [group('lifecycle')]
 stop:
