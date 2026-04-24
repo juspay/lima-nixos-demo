@@ -47,7 +47,13 @@ After merging release-image changes, create a GitHub release:
 just release v0.1.0
 ```
 
-Publishing the release starts the `Release Images` workflow. The workflow builds and compresses the x86_64 image on the self-hosted `x86_64-linux` runner and the aarch64 image on GitHub's `ubuntu-24.04-arm` runner, then uploads the qcow2, SHA-512, and Lima template assets to the release.
+`just release` generates release notes from Conventional Commits since the latest tag, creates the GitHub release, and starts the `Release Images` workflow. The workflow builds and compresses the x86_64 image on the self-hosted `x86_64-linux` runner and the aarch64 image on GitHub's `ubuntu-24.04-arm` runner, then uploads the qcow2, SHA-512, and Lima template assets to the release.
+
+To preview the generated notes:
+
+```sh
+just release-notes v0.1.1
+```
 
 For PR testing, use the mutable dev prerelease:
 
@@ -56,6 +62,18 @@ just release-development
 ```
 
 That recreates the `dev` release at the current branch and dispatches the image workflow on that branch. Its assets are overwritten on each run, so use it only for disposable testing.
+
+## Conventional Commits
+
+This repo uses squash merges, so PR titles should follow Conventional Commits. The merged commit title becomes the release-note input.
+
+Use types like `feat`, `fix`, `docs`, `ci`, `build`, `refactor`, `test`, and `chore`, with an optional scope:
+
+```text
+feat: boot devbox from release image
+fix(lima): clear mutable dev image cache
+docs: document release workflow
+```
 
 ## Security model
 

@@ -101,10 +101,20 @@ ssh *args='':
 
 # --- Release ---
 
+# Print release notes generated from Conventional Commits since the latest tag
+[group('release')]
+release-notes version:
+    @{{nix_shell}} git cliff --unreleased --tag "{{version}}" --strip header
+
 # Create a GitHub release and start image uploads
 [group('release')]
 release version:
-    {{nix_shell}} gh release create "{{version}}" --repo juspay/devbox --target main --title "Release {{version}}" --notes "Devbox image release {{version}}"
+    #!/usr/bin/env bash
+    set -euo pipefail
+    notes_file="$(mktemp)"
+    trap 'rm -f "$notes_file"' EXIT
+    {{nix_shell}} git cliff --unreleased --tag "{{version}}" --strip header > "$notes_file"
+    {{nix_shell}} gh release create "{{version}}" --repo juspay/devbox --target main --title "Release {{version}}" --notes-file "$notes_file"
     {{nix_shell}} gh workflow run release-images.yml --repo juspay/devbox --ref main -f tag="{{version}}"
 
 # Recreate the mutable dev prerelease from the current branch

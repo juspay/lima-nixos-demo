@@ -4,8 +4,31 @@ on:
   push:
     branches: [main]
   pull_request:
+    types: [opened, edited, synchronize, reopened, ready_for_review]
 
 jobs:
+  pr-title:
+    if: github.event_name == 'pull_request'
+    runs-on: x86_64-linux
+    steps:
+      - name: Check Conventional Commit PR title
+        env:
+          TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          set -euo pipefail
+          pattern='^(build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test)(\([a-z0-9._-]+\))?(!)?: .+'
+          if [[ ! "$TITLE" =~ $pattern ]]; then
+            cat >&2 <<'EOF'
+          PR titles must follow Conventional Commits because squash merges create the commit history.
+
+          Examples:
+            feat: boot devbox from release image
+            fix(lima): clear mutable dev image cache
+            docs: document release workflow
+          EOF
+            exit 1
+          fi
+
   check:
     runs-on: x86_64-linux
     steps:
