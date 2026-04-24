@@ -24,6 +24,18 @@
       darwinSystems = [ "aarch64-darwin" "x86_64-darwin" ];
       forEach = nixpkgs.lib.genAttrs;
       base = import ./default.nix inputs;
+      limaMessage = ''
+        devbox is ready.
+
+        Open a shell:
+          limactl shell --workdir=. {{.Name}}
+
+        This template intentionally does not mount your macOS home directory.
+        Clone repositories inside the VM, for example under ~/code.
+
+        To transfer files intentionally, use /tmp/lima-devbox on the host and
+        inside the VM.
+      '';
     in
     base // {
       devShells = forEach systems (system:
@@ -40,15 +52,28 @@
           };
         });
 
-      # Lima template YAML, pinned to our locked nixos-lima input. Passes
-      # through unmodified today; to apply local overrides (e.g. writable
-      # mounts), swap the `cp` for a `yq` transform, for example:
-      #   nativeBuildInputs = [ pkgs.yq-go ];
-      #   yq '.mounts |= map(.writable = true)' ${nixos-lima}/.lima.yaml > $out
+      # Lima template YAML, pinned to our locked nixos-lima input. Keep the
+      # nixos-lima guest integration defaults, but replace broad host mounts
+      # with a narrow scratch directory for explicit file transfer.
       packages = forEach systems (system:
         let pkgs = nixpkgs.legacyPackages.${system}; in {
-          lima-template = pkgs.runCommand "nixos-lima-template" { } ''
-            cp ${nixos-lima}/.lima.yaml $out
+          lima-template = pkgs.runCommand "devbox-lima-template" {
+            nativeBuildInputs = [ pkgs.yq-go ];
+            DEVBOX_MESSAGE = limaMessage;
+          } ''
+            yq -P '
+              .mounts = [
+                {
+                  "location": "/tmp/lima-devbox",
+                  "mountPoint": "/tmp/lima-devbox",
+                  "writable": true,
+                  "9p": {
+                    "cache": "mmap"
+                  }
+                }
+              ]
+              | .message = strenv(DEVBOX_MESSAGE)
+            ' ${nixos-lima}/.lima.yaml > $out
           '';
         });
     };

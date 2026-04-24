@@ -36,6 +36,7 @@ start release="latest":
     else
       template_url="https://github.com/juspay/devbox/releases/download/$release/devbox-lima.yaml"
     fi
+    mkdir -p /tmp/lima-devbox
     {{nix_shell}} limactl start --name={{name}} --cpus={{cpus}} --memory={{memory}} --disk={{disk}} --yes "$template_url"
 
 # Delete Lima's downloaded devbox image cache for a release
@@ -87,7 +88,7 @@ list:
 # Open a shell in the VM
 [group('access')]
 shell:
-    {{nix_shell}} limactl shell {{name}}
+    {{nix_shell}} limactl shell --workdir=. {{name}}
 
 # Print Lima's generated SSH config for the VM
 [group('access')]
