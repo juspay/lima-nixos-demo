@@ -33,7 +33,7 @@
 
       .page {
         margin: 0 auto;
-        max-width: 1040px;
+        max-width: 880px;
         padding: 28px 24px 34px;
       }
 
@@ -62,13 +62,11 @@
 
       .hero {
         display: grid;
-        gap: 34px;
-        grid-template-columns: minmax(0, 1.08fr) minmax(340px, 0.92fr);
-        min-height: calc(100vh - 96px);
+        gap: 24px;
       }
 
       .intro {
-        align-self: center;
+        max-width: 760px;
       }
 
       h1 {
@@ -101,10 +99,10 @@
       }
 
       .panel {
-        align-self: center;
         background: var(--panel);
         border: 1px solid var(--line);
         border-radius: 8px;
+        max-width: 760px;
         padding: 22px;
       }
 
@@ -126,8 +124,10 @@
 
       pre {
         margin: 0;
-        overflow: auto;
+        overflow: visible;
         padding: 16px;
+        white-space: pre-wrap;
+        word-break: break-word;
       }
 
       code {
@@ -171,6 +171,7 @@
 
       .next code {
         color: var(--ink);
+        overflow-wrap: anywhere;
       }
 
       @media (max-width: 820px) {
@@ -186,13 +187,7 @@
         }
 
         .hero {
-          grid-template-columns: 1fr;
           min-height: 0;
-        }
-
-        .panel,
-        .intro {
-          align-self: start;
         }
       }
     </style>
