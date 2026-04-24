@@ -252,7 +252,9 @@ Other installation options:
 EOF
   exit 1
 fi
+lima_path="$(command -v limactl)"
 ok "Lima installed: $(limactl --version 2>/dev/null || printf 'limactl found')"
+info "$lima_path"
 
 if [ -z "$template_url" ]; then
   if [ "$tag" = "latest" ]; then
