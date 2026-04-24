@@ -15,34 +15,55 @@ if [ "${DEVBOX_LIMA_DEFAULTS:-}" = "1" ]; then
   auto_size=0
 fi
 
-if [ -t 1 ]; then
+if [ "${DEVBOX_COLOR:-}" = "1" ]; then
+  use_color=1
+elif [ "${DEVBOX_COLOR:-}" = "0" ] || [ "${NO_COLOR:-}" ]; then
+  use_color=0
+elif [ -t 1 ]; then
+  use_color=1
+else
+  use_color=0
+fi
+
+if [ "$use_color" = "1" ]; then
   bold="$(printf '\033[1m')"
+  dim="$(printf '\033[2m')"
+  blue="$(printf '\033[34m')"
   green="$(printf '\033[32m')"
   yellow="$(printf '\033[33m')"
   red="$(printf '\033[31m')"
   reset="$(printf '\033[0m')"
 else
   bold=""
+  dim=""
+  blue=""
   green=""
   yellow=""
   red=""
   reset=""
 fi
 
+phase_no=0
+
 say() {
   printf '%s\n' "$*"
 }
 
-step() {
-  printf '%s==>%s %s\n' "$bold" "$reset" "$*"
+phase() {
+  phase_no=$((phase_no + 1))
+  printf '\n%s[%s]%s %s%s%s\n' "$blue" "$phase_no" "$reset" "$bold" "$*" "$reset"
+}
+
+info() {
+  printf '  %s-%s %s\n' "$dim" "$reset" "$*"
 }
 
 ok() {
-  printf '%sOK%s %s\n' "$green" "$reset" "$*"
+  printf '  %sOK%s %s\n' "$green" "$reset" "$*"
 }
 
 warn() {
-  printf '%sWarning:%s %s\n' "$yellow" "$reset" "$*" >&2
+  printf '  %s!%s %s\n' "$yellow" "$reset" "$*" >&2
 }
 
 die() {
@@ -71,7 +92,7 @@ Options:
 Environment overrides:
   DEVBOX_NAME, DEVBOX_TAG, DEVBOX_TEMPLATE_URL, DEVBOX_CPUS,
   DEVBOX_MEMORY, DEVBOX_DISK, DEVBOX_TRANSFER_DIR,
-  DEVBOX_LIMA_DEFAULTS=1
+  DEVBOX_LIMA_DEFAULTS=1, DEVBOX_COLOR=0|1, NO_COLOR=1
 EOF
 }
 
@@ -205,6 +226,9 @@ instance_status() {
   limactl list --format '{{.Status}}' "$name" 2>/dev/null || printf 'Unknown'
 }
 
+say "${bold}devbox${reset}"
+
+phase "Checking requirements"
 if ! command -v limactl >/dev/null 2>&1; then
   case "$(uname -s 2>/dev/null || true)" in
     Darwin)
@@ -228,6 +252,7 @@ Other installation options:
 EOF
   exit 1
 fi
+ok "Lima installed: $(limactl --version 2>/dev/null || printf 'limactl found')"
 
 if [ -z "$template_url" ]; then
   if [ "$tag" = "latest" ]; then
@@ -236,40 +261,39 @@ if [ -z "$template_url" ]; then
     template_url="https://github.com/$repo/releases/download/$tag/devbox-lima.yaml"
   fi
 fi
+ok "Release template selected"
+info "$template_url"
 
+phase "Choosing VM resources"
 if [ "$auto_size" = "1" ]; then
   [ -n "$cpus" ] || cpus="$(detect_cpus || true)"
   [ -n "$memory" ] || memory="$(detect_memory || true)"
   [ -n "$disk" ] || disk="$(detect_disk || true)"
+  [ -n "$cpus" ] && ok "CPUs: $cpus" || warn "CPU count not detected; Lima default will be used"
+  [ -n "$memory" ] && ok "Memory: ${memory} GiB" || warn "Memory not detected; Lima default will be used"
+  [ -n "$disk" ] && ok "Disk: ${disk} GiB" || warn "Free disk not detected; Lima default will be used"
+else
+  ok "Using Lima's default CPU, memory, and disk sizing"
 fi
 
-say "${bold}devbox${reset}"
-say
-step "Ensuring transfer directory exists: $transfer_dir"
+phase "Preparing host"
 mkdir -p "$transfer_dir"
+ok "Transfer directory ready: $transfer_dir"
 
+phase "Starting devbox"
 if instance_exists; then
   status="$(instance_status)"
-  step "Found existing Lima instance \"$name\" ($status)"
+  ok "Found existing Lima instance \"$name\" ($status)"
   if [ "$status" = "Running" ]; then
-    ok "VM is already running"
+    ok "VM already running"
   else
-    step "Starting existing VM"
+    info "Starting existing VM"
     limactl start "$name"
+    ok "VM started"
   fi
 else
-  step "Starting new VM from release template"
-  say "Instance: $name"
-  say "Template: $template_url"
-  if [ "$auto_size" = "1" ]; then
-    [ -n "$cpus" ] && say "CPUs:     $cpus"
-    [ -n "$memory" ] && say "Memory:   ${memory} GiB"
-    [ -n "$disk" ] && say "Disk:     ${disk} GiB"
-  else
-    say "Sizing:   Lima defaults"
-  fi
-  say "Image:    Lima will download it if it is not already cached"
-  say
+  info "Instance: $name"
+  info "Image: Lima will download it if it is not already cached"
 
   set -- limactl start "--name=$name"
   [ -n "$cpus" ] && set -- "$@" "--cpus=$cpus"
@@ -277,9 +301,10 @@ else
   [ -n "$disk" ] && set -- "$@" "--disk=$disk"
   set -- "$@" "$template_url"
   "$@"
+  ok "VM created and started"
 fi
 
-say
+phase "Ready"
 ok "devbox is ready"
 say
 say "Open a shell:"
