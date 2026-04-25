@@ -724,6 +724,10 @@
             <summary>Customise CPU, memory, disk, or release tag</summary>
             <p>By default the starter grabs the latest release, auto-sizes CPU, memory, and disk from the host, reuses a running VM, and starts a stopped one. For overrides, pipe <code>--help</code>: <code>curl -fsSL https://juspay.github.io/nixden/start | sh -s -- --help</code>.</p>
           </details>
+          <details>
+            <summary>Running x86_64 binaries on Apple Silicon</summary>
+            <p>Rosetta is on by default, so the aarch64 guest runs x86_64 Linux binaries at near-native speed via <code>binfmt_misc</code> — just <code>./some-x86-binary</code> and it works. Requires macOS 13+ on Apple Silicon and the <code>vz</code> driver. Intel Macs and Linux hosts ignore the toggle.</p>
+          </details>
         </div>
       </section>
 
