@@ -108,6 +108,10 @@ The VM name is `nixden`, and the guest user defaults to your macOS `$USER`. CPU 
 
 Via [`nixos/nixden.nix`](nixos/nixden.nix): `nix-ld`, flakes, [`nixos-vscode-server`](https://github.com/nix-community/nixos-vscode-server), `starship`, `direnv` + `nix-direnv`, `btop`, `just`, `gh`.
 
+## Running x86_64 binaries (Apple Silicon)
+
+The Lima template enables Rosetta, so the aarch64 guest runs x86_64 Linux binaries at near-native speed via `binfmt_misc`. Just run them — `./some-x86-binary` works without extra setup. Requires macOS 13+ on Apple Silicon and the default `vz` driver. Intel Macs and Linux hosts ignore the field, so it's safe to leave on. For full x86_64 kernel testing (boot, drivers, arch-specific kernel paths), boot the published `nixden-<tag>-x86_64.qcow2` under QEMU instead — see [issue #19](https://github.com/juspay/nixden/issues/19).
+
 ## Release images
 
 The flake can build baked Lima-compatible qcow2 images from `nixosConfigurations.nixden-aarch64.config.system.build.images.qemu-efi` and `nixosConfigurations.nixden-x86_64.config.system.build.images.qemu-efi`. Publishing a GitHub release triggers the release-image workflow, which uploads `nixden-<tag>-aarch64.qcow2`, `nixden-<tag>-x86_64.qcow2`, matching SHA-512 files, and `nixden-lima.yaml` to that release.
