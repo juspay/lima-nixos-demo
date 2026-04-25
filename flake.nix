@@ -78,8 +78,8 @@
                   }
                 }
               ]
-              | .rosetta.enabled = true
-              | .rosetta.binfmt = true
+              | .vmOpts.vz.rosetta.enabled = true
+              | .vmOpts.vz.rosetta.binfmt = true
               | .message = strenv(NIXDEN_MESSAGE)
             ' ${nixos-lima}/.lima.yaml > $out
           '';
