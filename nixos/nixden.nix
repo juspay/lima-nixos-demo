@@ -17,6 +17,16 @@
   programs.nix-ld.enable = true;
   services.vscode-server.enable = true;
 
+  # Run x86_64 Linux binaries on Apple Silicon via Rosetta. Lima's vz driver
+  # exposes the Rosetta runtime as a virtiofs share with tag `vz-rosetta`
+  # (NixOS defaults to UTM's `rosetta`). On non-Apple-Silicon hosts the share
+  # is absent; the systemd mount unit fails harmlessly and binfmt_misc stays
+  # unregistered.
+  virtualisation.rosetta = {
+    enable = true;
+    mountTag = "vz-rosetta";
+  };
+
   boot.kernelPackages = pkgs.linuxPackages_latest;
 
   environment.systemPackages = with pkgs; [
