@@ -728,6 +728,10 @@
             <summary>Running x86_64 binaries on Apple Silicon</summary>
             <p>Rosetta is on by default, so the aarch64 guest runs x86_64 Linux binaries at near-native speed via <code>binfmt_misc</code> — just <code>./some-x86-binary</code> and it works. Requires macOS 13+ on Apple Silicon and the <code>vz</code> driver.</p>
           </details>
+          <details>
+            <summary>Linux hosts</summary>
+            <p>nixden targets macOS first, but the same starter and <code>just</code> flow run on Linux hosts wherever Lima is supported — see the <a href="https://lima-vm.io/docs/installation/">Lima installer guide</a>.</p>
+          </details>
         </div>
       </section>
 
